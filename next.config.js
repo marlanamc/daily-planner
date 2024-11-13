@@ -13,9 +13,6 @@ module.exports = {
     }
     return config;
   },
-  experimental: {
-    appDir: true,
-  },
   fonts: {
     google: {
       preload: true,
