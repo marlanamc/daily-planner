@@ -1,4 +1,10 @@
 const { fontFamily } = require('tailwindcss/defaultTheme');
+const { Inter } = require('@next/font/google');
+
+const inter = Inter({
+  variable: '--font-inter',
+  subsets: ['latin'],
+});
 
 module.exports = {
   reactStrictMode: true,
@@ -16,25 +22,7 @@ module.exports = {
   experimental: {
     appDir: true,
   },
-  fontLoader: {
-    preconnect: ['https://fonts.googleapis.com', 'https://fonts.gstatic.com'],
-    formats: ['woff2'],
-    custom: {
-      'inter-var': [
-        {
-          weight: '100 900',
-          style: ['normal', 'italic'],
-          fontDisplay: 'swap',
-          src: 'https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap',
-        },
-      ],
-    },
+  fonts: {
+    inter: inter,
   },
-  plugins: [
-    require('@next/font/google', {
-      // Provide the font files to Next.js
-      markers: true,
-      variable: '--font-inter',
-    }),
-  ],
 };
