@@ -1,10 +1,4 @@
 const { fontFamily } = require('tailwindcss/defaultTheme');
-const { Inter } = require('@next/font/google');
-
-const inter = Inter({
-  variable: '--font-inter',
-  subsets: ['latin'],
-});
 
 module.exports = {
   reactStrictMode: true,
@@ -23,6 +17,15 @@ module.exports = {
     appDir: true,
   },
   fonts: {
-    inter: inter,
+    google: {
+      preload: true,
+      families: [
+        {
+          name: 'Inter',
+          style: ['normal', 'italic'],
+          weights: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+        },
+      ],
+    },
   },
 };
