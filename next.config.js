@@ -13,16 +13,4 @@ module.exports = {
     }
     return config;
   },
-  fonts: {
-    google: {
-      preload: true,
-      families: [
-        {
-          name: 'Inter',
-          style: ['normal', 'italic'],
-          weights: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
-        },
-      ],
-    },
-  },
 };
