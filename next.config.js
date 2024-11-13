@@ -1,11 +1,4 @@
-const { Inter } = require('next/font/google');
-
-const metadata = {
-  title: 'Daily Planner',
-  description: 'A simple daily planner application',
-};
-
-const inter = Inter({ subsets: ['latin'] });
+const { fontFamily } = require('tailwindcss/defaultTheme');
 
 module.exports = {
   reactStrictMode: true,
@@ -23,6 +16,25 @@ module.exports = {
   experimental: {
     appDir: true,
   },
-  metadata,
-  inter,
+  fontLoader: {
+    preconnect: ['https://fonts.googleapis.com', 'https://fonts.gstatic.com'],
+    formats: ['woff2'],
+    custom: {
+      'inter-var': [
+        {
+          weight: '100 900',
+          style: ['normal', 'italic'],
+          fontDisplay: 'swap',
+          src: 'https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap',
+        },
+      ],
+    },
+  },
+  plugins: [
+    require('@next/font/google', {
+      // Provide the font files to Next.js
+      markers: true,
+      variable: '--font-inter',
+    }),
+  ],
 };
