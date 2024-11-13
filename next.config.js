@@ -1,22 +1,28 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
+const { Inter } = require('next/font/google');
 
-const inter = Inter({ subsets: ['latin'] })
-
-export const metadata: Metadata = {
+const metadata = {
   title: 'Daily Planner',
   description: 'A simple daily planner application',
-}
+};
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
-    </html>
-  )
-}
+const inter = Inter({ subsets: ['latin'] });
+
+module.exports = {
+  reactStrictMode: true,
+  swcMinify: true,
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    return config;
+  },
+  experimental: {
+    appDir: true,
+  },
+  metadata,
+  inter,
+};
