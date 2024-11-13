@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es6", // Changed target for better compatibility with modern JavaScript
     "lib": [
       "dom",
       "dom.iterable",
@@ -16,7 +16,7 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "preserve", // Use "react-jsx" for better JSX handling in Next.js
     "incremental": true,
     "baseUrl": ".",
     "paths": {
