@@ -178,26 +178,25 @@ const DailyPlanner = () => {
         {/* Main Planner Content */}
         <Tabs defaultValue="planner" className="w-full">
           <TabsContent value="planner">
-            <form onSubmit={handleMainTaskSubmit} className="space-y-4 mb-6">
-              <div className="text-lg font-normal text-gray-900" style={{ fontFamily: 'system-ui' }}>
-                What is expected of you today? 🌟
-              </div>
-              <div className="flex gap-4">
-                <Input
-                  value={mainTask}
-                  onChange={(e) => setMainTask(e.target.value)}
-                  placeholder="Enter your main task..."
-                  className="flex-grow bg-white/70 text-gray-900"
-                />
-                <Button 
-                  type="submit"
-                  className="bg-[#FBA2BE] hover:bg-[#FFD5DD] text-black font-normal"
-                >
-                  Submit ✨
-                </Button>
-              </div>
+          <form onSubmit={handleMainTaskSubmit} className="space-y-4 mb-6 max-w-xl mx-auto">
+            <div className="text-lg font-normal text-gray-900 text-center" style={{ fontFamily: 'system-ui' }}>
+              What is expected of you today? 🌟
+            </div>
+            <div className="flex gap-4">
+              <Input
+                value={mainTask}
+                onChange={(e) => setMainTask(e.target.value)}
+                placeholder="Enter your main task..."
+                className="flex-grow bg-white/70"
+              />
+              <Button 
+                type="submit"
+                className="bg-[#FBA2BE] hover:bg-[#FFD5DD] text-black font-normal"
+              >
+                Submit ✨
+              </Button>
+            </div>
             </form>
-
             {displayedTask && (
               <Card className="mb-6 bg-white/70 border-none">
                 <CardContent className="p-4">
