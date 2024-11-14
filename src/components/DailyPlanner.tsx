@@ -146,11 +146,12 @@ const DailyPlanner = () => {
     <div className="min-h-screen bg-gradient-to-br from-pink-100 to-blue-100">
       <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Week View */}
+        <div className="mb-8">
           <div className="text-3xl text-center mb-6 font-normal text-gray-900" style={{ fontFamily: 'system-ui' }}>
             {currentDate.toLocaleDateString('en-US', { 
               weekday: 'long',
               year: 'numeric',
-              month: 'long',
+              month: 'long', 
               day: 'numeric'
             })}
           </div>
