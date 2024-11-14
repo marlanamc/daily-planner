@@ -35,14 +35,14 @@ const DailyPlanner = () => {
 
   // Get current date and week dates
   const currentDate = new Date();
-  const currentMonth = currentDate.toLocaleString('default', { month: 'long' });
+  currentDate.setHours(0, 0, 0, 0);
   
   const getWeekDates = () => {
-    const curr = new Date();
+    const curr = new Date(); // This creates a new date based on current time
+    curr.setHours(0, 0, 0, 0); // Reset time portion to avoid timezone issues
     const week = [];
     
-    // Starting from Sunday
-    curr.setDate(curr.getDate() - curr.getDay());
+    curr.setDate(curr.getDate() - curr.getDay()); // Start from Sunday
     
     for (let i = 0; i < 7; i++) {
       week.push(new Date(curr));
