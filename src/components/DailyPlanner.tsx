@@ -193,7 +193,7 @@ const DailyPlanner = () => {
                 type="submit"
                 className="bg-[#FBA2BE] hover:bg-[#FFD5DD] text-black font-normal"
               >
-                Submit ✨
+                Submit✨
               </Button>
             </div>
             </form>
