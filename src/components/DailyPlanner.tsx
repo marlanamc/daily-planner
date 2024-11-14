@@ -148,10 +148,15 @@ const DailyPlanner = () => {
         {/* Week View */}
         <div className="mb-8">
           <div className="text-2xl text-center mb-4 font-normal text-gray-900" style={{ fontFamily: 'system-ui' }}>
-            {currentMonth}
+            Today is:
           </div>
           <div className="text-3xl text-center mb-6 font-normal text-gray-900" style={{ fontFamily: 'system-ui' }}>
-            Today
+            {currentDate.toLocaleDateString('en-US', { 
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}
           </div>
           <div className="flex justify-center gap-4 mb-8">
             {weekDates.map((date, index) => (
