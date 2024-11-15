@@ -1,11 +1,14 @@
 import DailyPlanner from '../components/DailyPlanner';
-import ErrorBoundary from '@/components/ErrorBoundary';
+import dynamic from 'next/dynamic';
 
+const ErrorBoundary = dynamic(() => import('@/components/ErrorBoundary'), {
+    ssr: false
+});
 
 export default function Home() {
-  return (
-    <ErrorBoundary>
-      <DailyPlanner />
-    </ErrorBoundary>
-  );
+    return (
+        <ErrorBoundary>
+            <DailyPlanner />
+        </ErrorBoundary>
+    );
 }
