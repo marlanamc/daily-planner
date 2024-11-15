@@ -330,35 +330,45 @@ const DailyPlanner = () => {
         
         {/* ===== DATE HEADER SECTION ===== */}
         <div className="mb-8">
-          {/* Current Date Display */}
-          <div className="text-3xl text-center mb-6 font-normal text-gray-900" style={{ fontFamily: 'system-ui', color: textColor }}>
-            {currentDate.toLocaleDateString('en-US', { 
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long', 
-              day: 'numeric'
-            })}
-          </div>
-  
-          {/* Week View */}
-          <div className="flex justify-center gap-4 mb-8">
-            {weekDates.map((date, index) => (
-              <div key={index} className="text-center">
-                <div className="text-sm text-gray-700 mb-2 font-medium">
-                  {weekDays[index][0]}
+            {/* Current Date Display */}
+            <div className="text-center space-y-2 p-4 bg-white/30 backdrop-blur-sm rounded-2xl shadow-sm">
+                <div className="text-4xl font-semibold tracking-tight" style={{ color: textColor }}>
+                    {currentDate.toLocaleDateString('en-US', { 
+                        weekday: 'long',
+                    })}
                 </div>
-                <div
-                  className={`w-10 h-10 flex items-center justify-center rounded-full font-normal`}
-                  style={{
-                      backgroundColor: date.getDate() === currentDate.getDate() ? buttonColor : 'transparent',
-                      color: date.getDate() === currentDate.getDate() ? 'white' : 'gray',
-                  }}
-              >
-                  {date.getDate()}
-              </div>
-              </div>
-            ))}
-          </div>
+                <div className="text-2xl font-light" style={{ color: textColor }}>
+                    {currentDate.toLocaleDateString('en-US', { 
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                    })}
+                </div>
+            </div>
+
+            {/* Week View */}
+            <div className="flex justify-center gap-4 mt-6">
+                {weekDates.map((date, index) => (
+                    <div key={index} className="text-center">
+                        <div className="text-sm font-medium mb-2" style={{ color: textColor }}>
+                            {weekDays[index]}
+                        </div>
+                        <div
+                            className={`w-10 h-10 flex items-center justify-center rounded-full font-medium transition-all duration-200 ${
+                                date.getDate() === currentDate.getDate() 
+                                ? 'shadow-md transform hover:scale-110' 
+                                : 'hover:bg-white/20'
+                            }`}
+                            style={{
+                                backgroundColor: date.getDate() === currentDate.getDate() ? buttonColor : 'transparent',
+                                color: date.getDate() === currentDate.getDate() ? 'white' : textColor,
+                            }}
+                        >
+                            {date.getDate()}
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
   
         {/* ===== SETTINGS PANEL ===== */}
@@ -485,11 +495,11 @@ const DailyPlanner = () => {
             )}
   
             {/* Category Cards */}
-            <div className="flex flex-row gap-4 overflow-x-auto pb-4">
+            <div className="flex flex-col md:flex-row gap-4 md:overflow-x-auto pb-4">
               {categories.map((category, categoryIndex) => (
                 <Card 
                   key={categoryIndex} 
-                  className="flex-1 min-w-[300px] border-none"
+                  className="flex-1 md:min-w-[300px] border-none"
                   style={{ backgroundColor: category.color + '80' }}
                 >
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -551,25 +561,34 @@ const DailyPlanner = () => {
 
                         {/* Conditionally render the time inputs if there's text in the newTodo input */}
                         {category.newTodo && (
-                            <div className="flex gap-2">
-                                <Input
-                                    type="time"
-                                    value={category.newTodoTimes?.start || ''}
-                                    onChange={(e) => handleTodoTimeChange(categoryIndex, 'start', e.target.value)}
-                                    className="bg-white/70 w-20 text-sm time-input"
-                                />
-                                <span className="self-center text-sm">to</span>
-                                <Input
-                                    type="time"
-                                    onChange={(e) => handleTodoTimeChange(categoryIndex, 'end', e.target.value)}
-                                    className="bg-white/70 w-20 text-sm time-input"
-                                />
+                            <div className="flex flex-col gap-3 p-2 bg-white/80 rounded-lg">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-xs font-medium text-gray-600">Start Time</label>
+                                        <Input
+                                            type="time"
+                                            value={category.newTodoTimes?.start || ''}
+                                            onChange={(e) => handleTodoTimeChange(categoryIndex, 'start', e.target.value)}
+                                            className="bg-white text-sm time-input focus:ring-2 focus:ring-offset-0 h-8"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-xs font-medium text-gray-600">End Time</label>
+                                        <Input
+                                            type="time"
+                                            value={category.newTodoTimes?.end || ''}
+                                            onChange={(e) => handleTodoTimeChange(categoryIndex, 'end', e.target.value)}
+                                            className="bg-white text-sm time-input focus:ring-2 focus:ring-offset-0 h-8"
+                                        />
+                                    </div>
+                                </div>
                                 <Button 
                                     onClick={() => handleAddTodo(categoryIndex)}
                                     size="sm"
-                                    className="bg-white/70 hover:bg-white text-black px-2"
+                                    className="bg-white hover:bg-white/90 text-black w-full"
                                 >
-                                    <Plus size={16} />
+                                    <Plus size={16} className="mr-2" />
+                                    Add Task
                                 </Button>
                             </div>
                         )}
