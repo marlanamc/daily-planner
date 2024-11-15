@@ -125,7 +125,7 @@ const DailyPlanner = () => {
     setCategories(updatedCategories);
   };
 
-  const handleAddTodo = (categoryIndex) => {
+  const handleAddTodo = (categoryIndex: number) => {
     const updatedCategories = [...categories];
 
     if (updatedCategories[categoryIndex].newTodo.trim()) {
@@ -142,7 +142,8 @@ const DailyPlanner = () => {
         updatedCategories[categoryIndex].newTodoTimes = { start: '', end: '' };
         setCategories(updatedCategories);
     }
-  };
+};
+
 
   const updateTodoDueDate = (categoryIndex: number, todoIndex: number, date: string) => {
     const updatedCategories = [...categories];
