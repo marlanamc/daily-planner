@@ -191,10 +191,11 @@ const DailyPlanner = () => {
 };
 
 const getTaskHeight = (scheduledTask: ScheduledTask | null): string => {
-    if (!isScheduledTaskValid(scheduledTask)) {
-        return '0px'; // Fallback height if task is invalid
-    }
-    return `${getTimeDifferenceInHours(scheduledTask.startTime, scheduledTask.endTime) * 48}px`;
+  if (!scheduledTask || !scheduledTask.startTime || !scheduledTask.endTime) {
+      return '0px'; // Fallback height
+  }
+  // Ensure non-null access is explicitly enforced here
+  return `${getTimeDifferenceInHours(scheduledTask.startTime!, scheduledTask.endTime!) * 48}px`;
 };
 
 
@@ -648,7 +649,9 @@ const getTaskHeight = (scheduledTask: ScheduledTask | null): string => {
                                     className="absolute left-0 w-full rounded px-2"
                                     style={{
                                         backgroundColor: buttonColor,
-                                        height: getTaskHeight(scheduledTask),
+                                        height: scheduledTask.startTime && scheduledTask.endTime
+                                            ? `${getTimeDifferenceInHours(scheduledTask.startTime, scheduledTask.endTime) * 48}px`
+                                            : '0px', // Fallback
                                     }}
                                 >
                                     <span className={scheduledTask.completed ? 'line-through' : ''}>
