@@ -183,11 +183,12 @@ const DailyPlanner = () => {
   const handleTodoTimeChange = (categoryIndex: number, type: 'start' | 'end', value: string) => {
     const updatedCategories = [...categories];
     if (!updatedCategories[categoryIndex].newTodoTimes) {
-      updatedCategories[categoryIndex].newTodoTimes = {};
+        updatedCategories[categoryIndex].newTodoTimes = { start: '', end: '' }; // Provide defaults
     }
     updatedCategories[categoryIndex].newTodoTimes[type] = value;
     setCategories(updatedCategories);
-  };
+};
+
 
   const handleMainTaskSubmit = (e) => {
     e.preventDefault();
