@@ -631,12 +631,12 @@ const DailyPlanner = () => {
                                   <div
                                       className="absolute left-0 w-full rounded px-2"
                                       style={{
-                                          backgroundColor: buttonColor,
-                                          height: `${getTimeDifferenceInHours(
-                                              scheduledTask.startTime,
-                                              scheduledTask.endTime
-                                          ) * 48}px`,
-                                      }}
+                                        backgroundColor: buttonColor,
+                                        height: scheduledTask?.startTime && scheduledTask?.endTime 
+                                            ? `${getTimeDifferenceInHours(scheduledTask.startTime, scheduledTask.endTime) * 48}px` 
+                                            : '0px', // Fallback if startTime or endTime is null
+                                    }}
+                                    
                                   >
                                       <span className={scheduledTask.completed ? 'line-through' : ''}>
                                           {scheduledTask.text}
