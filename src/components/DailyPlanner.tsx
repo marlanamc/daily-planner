@@ -144,9 +144,10 @@ const DailyPlanner = () => {
 
   const updateTodoDueDate = (categoryIndex: number, todoIndex: number, date: string) => {
     const updatedCategories = [...categories];
-    updatedCategories[categoryIndex].todos[todoIndex].dueDate = date || null;
+    updatedCategories[categoryIndex].todos[todoIndex].dueDate = date || undefined; // Use undefined
     setCategories(updatedCategories);
   };
+
 
   const toggleTodo = (categoryIndex: number, todoIndex: number) => {
     const updatedCategories = [...categories];
