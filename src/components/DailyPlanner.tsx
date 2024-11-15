@@ -627,22 +627,22 @@ const DailyPlanner = () => {
                       <div className="flex-grow relative">
                           {/* Show main task with conditional strikethrough */}
                           {scheduledTask &&
+                              scheduledTask.startTime &&
+                              scheduledTask.endTime &&
                               getHourFromTime(scheduledTask.startTime) === hour && (
                                   <div
                                       className="absolute left-0 w-full rounded px-2"
                                       style={{
-                                        backgroundColor: buttonColor,
-                                        height: scheduledTask?.startTime && scheduledTask?.endTime 
-                                            ? `${getTimeDifferenceInHours(scheduledTask.startTime, scheduledTask.endTime) * 48}px` 
-                                            : '0px', // Fallback if startTime or endTime is null
-                                    }}
-                                    
+                                          backgroundColor: buttonColor,
+                                          height: `${getTimeDifferenceInHours(scheduledTask.startTime, scheduledTask.endTime) * 48}px`,
+                                      }}
                                   >
                                       <span className={scheduledTask.completed ? 'line-through' : ''}>
                                           {scheduledTask.text}
                                       </span>
                                   </div>
-                              )}
+                              )
+                          }
 
                           {/* Show category todos with conditional strikethrough */}
                           {categories.flatMap((category) =>
