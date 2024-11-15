@@ -25,6 +25,13 @@ interface Category {
   newTodoTimes?: { start: string; end: string } | null; // Times for the new todo (optional)
 }
 
+interface ScheduledTask {
+  text: string;
+  startTime: string | null;
+  endTime: string | null;
+  hour?: number; // Optional if it’s not always set
+  completed: boolean;
+}
 
 const DailyPlanner = () => {
       // Core state
@@ -57,7 +64,8 @@ const DailyPlanner = () => {
   });
 
   // These handle which page you're on                 
-  const [scheduledTask, setScheduledTask] = useState(null); // Task in schedule view
+  const [scheduledTask, setScheduledTask] = useState<ScheduledTask | null>(null);
+
 
     // Get current date and week dates
   const currentDate = new Date();
@@ -202,11 +210,12 @@ const DailyPlanner = () => {
             const taskHour = isPM && hour !== 12 ? hour + 12 : hour % 12; // Convert to 24-hour time format
 
             setScheduledTask({
-                text: mainTask,
-                startTime,
-                endTime,
-                hour: taskHour,
-                completed: false,
+              text: mainTask,
+              startTime,
+              endTime,
+              hour: taskHour, // Optional property
+              completed: false,
+          
             });
         } else {
             // If no time is extracted, set the task without an hour
