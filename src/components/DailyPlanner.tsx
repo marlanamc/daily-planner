@@ -11,11 +11,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Todo {
   id: string;
-  text: string;          // The actual todo text
-  completed: boolean;    // Whether it's checked off or not
-  dueDate?: string;     // Optional date when it's due
-  startTime?: string | null;  // Add these new fields
-  endTime?: string | null;    // Add these new fields
+  text: string;
+  completed: boolean;
+  dueDate?: string;
+  startTime: string | null;
+  endTime: string | null;
 }
 
 interface Category {
@@ -138,9 +138,9 @@ const DailyPlanner = () => {
             id: crypto.randomUUID(),
             text: updatedCategories[categoryIndex].newTodo,
             completed: false,
-            dueDate: undefined, // Use undefined instead of null
-            startTime: updatedCategories[categoryIndex].newTodoTimes?.start || undefined,
-            endTime: updatedCategories[categoryIndex].newTodoTimes?.end || undefined,
+            dueDate: undefined,
+            startTime: updatedCategories[categoryIndex].newTodoTimes?.start || null,
+            endTime: updatedCategories[categoryIndex].newTodoTimes?.end || null,
         });
 
         // Reset newTodo and newTodoTimes
@@ -683,14 +683,19 @@ const DailyPlanner = () => {
                           {/* Show category todos with conditional strikethrough */}
                           {categories.flatMap((category) =>
                               category.todos
-                                  .filter((todo) => todo.startTime && getHourFromTime(todo.startTime) === hour)
-                                  .map((todo, idx) => (
-                                      <div key={todo.id}
+                                  .filter((todo) => 
+                                      todo.startTime !== null && 
+                                      todo.startTime !== undefined && 
+                                      getHourFromTime(todo.startTime) === hour
+                                  )
+                                  .map((todo) => (
+                                      <div
+                                          key={todo.id}
                                           className="absolute left-0 w-full rounded px-2"
                                           style={{
                                               backgroundColor: category.color + '80',
                                               height: (() => {
-                                                  const diff = getTimeDifferenceInHours(todo.startTime, todo.endTime);
+                                                  const diff = getTimeDifferenceInHours(todo.startTime || null, todo.endTime || null);
                                                   return diff !== null ? `${diff * 48}px` : '0px';
                                               })()
                                           }}
