@@ -184,6 +184,13 @@ const DailyPlanner = () => {
     setCategories(updatedCategories);
   };
 
+  const getTaskHeight = (scheduledTask: ScheduledTask | null) => {
+    if (scheduledTask?.startTime && scheduledTask?.endTime) {
+        return `${getTimeDifferenceInHours(scheduledTask.startTime, scheduledTask.endTime) * 48}px`;
+    }
+    return '0px'; // Fallback height if startTime or endTime is null
+  };
+
     // For main task
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -634,10 +641,7 @@ const DailyPlanner = () => {
                                       className="absolute left-0 w-full rounded px-2"
                                       style={{
                                           backgroundColor: buttonColor,
-                                          height:
-                                              scheduledTask.startTime && scheduledTask.endTime
-                                                  ? `${getTimeDifferenceInHours(scheduledTask.startTime, scheduledTask.endTime) * 48}px`
-                                                  : '0px', // Fallback height
+                                          height: getTaskHeight(scheduledTask),
                                       }}
                                   >
                                       <span className={scheduledTask.completed ? 'line-through' : ''}>
