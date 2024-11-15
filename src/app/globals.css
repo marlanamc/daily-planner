@@ -12,3 +12,14 @@ body {
   background: var(--background);
   font-family: 'Inter', sans-serif;
 }
+.time-input {
+  width: 50px;
+  padding: 2px;
+  font-size: 0.875rem; /* Smaller font size */
+  border-radius: 4px;
+}
+.line-through {
+  text-decoration: line-through;
+  color: #888; /* Optional: Change color to a lighter gray */
+}
+

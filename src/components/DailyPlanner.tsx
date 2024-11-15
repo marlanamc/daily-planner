@@ -1,27 +1,31 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
+import { Rnd } from 'react-rnd';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, X, Calendar as CalendarIcon, Settings } from 'lucide-react';
+import { Plus, X as CloseIcon, Calendar as CalendarIcon, Settings } from 'lucide-react'; 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Todo {
-  text: string;
-  completed: boolean;
-  dueDate?: string | null;  // Changed to string for simple date input
+  text: string;          // The actual todo text
+  completed: boolean;    // Whether it's checked off or not
+  dueDate?: string;     // Optional date when it's due
+  startTime?: string | null;  // Add these new fields
+  endTime?: string | null;    // Add these new fields
 }
 
 interface Category {
-  name: string;
-  todos: Todo[];
-  color: string;
-  newTodo: string;
+  name: string;         // Category name like "Wellness"
+  todos: Todo[];        // List of todos in this category
+  color: string;        // Color of the category card
+  newTodo: string;      // Text being typed in the "Add todo" box
 }
 
 const DailyPlanner = () => {
+      // Core state
   const [mainTask, setMainTask] = useState('');
   const [displayedTask, setDisplayedTask] = useState('');
   const [categories, setCategories] = useState<Category[]>([
@@ -31,14 +35,32 @@ const DailyPlanner = () => {
   ]);
   const [editingCategory, setEditingCategory] = useState<number | null>(null);
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [showFullCalendar, setShowFullCalendar] = useState(false);
 
+  // Theme state - each color needs its own useState
+  const [backgroundColor1, setBackgroundColor1] = useState('#fce7f3');
+  const [backgroundColor2, setBackgroundColor2] = useState('#dbeafe');
+  const [textColor, setTextColor] = useState('#111827');
+  const [buttonColor, setButtonColor] = useState('#FBA2BE');
+  const [showSettings, setShowSettings] = useState(false);
+
+  // Navigation and Schedule state
   const [activePage, setActivePage] = useState('planner');
+  const [showFullCalendar, setShowFullCalendar] = useState(false);
+  const [scheduleBlocks, setScheduleBlocks] = useState([]);
+  const [newBlock, setNewBlock] = useState({
+    title: '',
+    startTime: '',
+    endTime: '',
+    color: '#FBA2BE'
+  });
 
-  // Get current date and week dates
+  // These handle which page you're on                 
+  const [scheduledTask, setScheduledTask] = useState(null); // Task in schedule view
+
+    // Get current date and week dates
   const currentDate = new Date();
   currentDate.setHours(0, 0, 0, 0);
-  
+    
   const getWeekDates = () => {
     const curr = new Date(); // This creates a new date based on current time
     curr.setHours(0, 0, 0, 0); // Reset time portion to avoid timezone issues
@@ -52,6 +74,30 @@ const DailyPlanner = () => {
     }
     
     return week;
+  };
+
+  const getHourFromTime = (time) => {
+    if (!time) return null; // Handle null or undefined inputs
+    const [hour] = time.split(':').map(Number); // Split the time string and convert to number
+    return hour;
+  };
+
+  const getTimeDifferenceInHours = (startTime, endTime) => {
+    if (!startTime || !endTime) return null; // Handle null or undefined inputs
+
+    // Parse the hours and minutes from both time strings
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+
+    // Convert start and end times to minutes
+    const startTotalMinutes = startHour * 60 + startMinute;
+    const endTotalMinutes = endHour * 60 + endMinute;
+
+    // Calculate the difference in minutes
+    const differenceInMinutes = endTotalMinutes - startTotalMinutes;
+
+    // Convert back to hours and return
+    return differenceInMinutes / 60;
   };
 
   const weekDates = getWeekDates();
@@ -70,11 +116,6 @@ const DailyPlanner = () => {
     monthDays.push(i);
   }
 
-  const handleMainTaskSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setDisplayedTask(mainTask);
-    setMainTask('');
-  };
 
   const handleTodoInputChange = (categoryIndex: number, value: string) => {
     const updatedCategories = [...categories];
@@ -82,16 +123,22 @@ const DailyPlanner = () => {
     setCategories(updatedCategories);
   };
 
-  const handleAddTodo = (categoryIndex: number) => {
+  const handleAddTodo = (categoryIndex) => {
     const updatedCategories = [...categories];
+
     if (updatedCategories[categoryIndex].newTodo.trim()) {
-      updatedCategories[categoryIndex].todos.push({
-        text: updatedCategories[categoryIndex].newTodo,
-        completed: false,
-        dueDate: null
-      });
-      updatedCategories[categoryIndex].newTodo = '';
-      setCategories(updatedCategories);
+        updatedCategories[categoryIndex].todos.push({
+            text: updatedCategories[categoryIndex].newTodo,
+            completed: false,
+            dueDate: null,
+            startTime: updatedCategories[categoryIndex].newTodoTimes?.start || null,
+            endTime: updatedCategories[categoryIndex].newTodoTimes?.end || null,
+        });
+
+        // Reset input fields for the category
+        updatedCategories[categoryIndex].newTodo = '';
+        updatedCategories[categoryIndex].newTodoTimes = { start: '', end: '' };
+        setCategories(updatedCategories);
     }
   };
 
@@ -128,18 +175,64 @@ const DailyPlanner = () => {
     setCategories(updatedCategories);
   };
 
-  const [backgroundColor1, setBackgroundColor1] = useState('#fce7f3'); // pink-100
-  const [backgroundColor2, setBackgroundColor2] = useState('#dbeafe'); // blue-100
-  const [textColor, setTextColor] = useState('#111827'); // gray-900
-  const [buttonColor, setButtonColor] = useState('#FBA2BE');
-  const [showSettings, setShowSettings] = useState(false);
+    // For main task
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+
+  const handleTodoTimeChange = (categoryIndex: number, type: 'start' | 'end', value: string) => {
+    const updatedCategories = [...categories];
+    if (!updatedCategories[categoryIndex].newTodoTimes) {
+      updatedCategories[categoryIndex].newTodoTimes = {};
+    }
+    updatedCategories[categoryIndex].newTodoTimes[type] = value;
+    setCategories(updatedCategories);
+  };
+
+  const handleMainTaskSubmit = (e) => {
+    e.preventDefault();
+    if (mainTask) {
+        const timeMatch = mainTask.match(/(\d{1,2})\s*(AM|PM)/i);
+        if (timeMatch) {
+            const hour = parseInt(timeMatch[1]);
+            const isPM = timeMatch[2].toUpperCase() === 'PM';
+            const taskHour = isPM && hour !== 12 ? hour + 12 : hour % 12;
+
+            setScheduledTask({
+                text: mainTask,
+                startTime,
+                endTime,
+                hour: taskHour,
+                completed: false,
+            });
+        } else {
+            setScheduledTask({
+                text: mainTask,
+                startTime,
+                endTime,
+                completed: false,
+            });
+        }
+
+        setDisplayedTask(mainTask); // Ensure this is set correctly
+        setMainTask('');
+        setStartTime('');
+        setEndTime('');
+    }
+};
 
   const resetColors = () => {
     setBackgroundColor1('#fce7f3');
     setBackgroundColor2('#dbeafe');
     setTextColor('#111827');
     setButtonColor('#FBA2BE');
-   };
+
+    const defaultColors = ['#FBA2BE', '#FFD5DD', '#C8E8E5']; // Define default colors
+    const updatedCategories = categories.map((category, index) => ({
+        ...category,
+        color: defaultColors[index % defaultColors.length], // Cycle through defaults
+    }));
+    setCategories(updatedCategories);
+  };
 
   useEffect(() => {
     const savedData = localStorage.getItem('dailyPlanner');
@@ -151,27 +244,37 @@ const DailyPlanner = () => {
         setBackgroundColor1(colors.bg1);
         setBackgroundColor2(colors.bg2);
         setTextColor(colors.text);
+        setButtonColor(colors.button || '#FBA2BE');
       }
     }
   }, []);
   
   useEffect(() => {
-    localStorage.setItem('dailyPlanner', JSON.stringify({
-      categories,
-      mainTask: displayedTask,
-      colors: {
-        bg1: backgroundColor1,
-        bg2: backgroundColor2,
-        text: textColor
-      }
-    }));
-  }, [categories, displayedTask, backgroundColor1, backgroundColor2, textColor]);
+    localStorage.setItem(
+        'dailyPlanner',
+        JSON.stringify({
+            categories,
+            mainTask: displayedTask,
+            scheduledTask, // Add this to persist the scheduled task
+            colors: {
+                bg1: backgroundColor1,
+                bg2: backgroundColor2,
+                text: textColor,
+                button: buttonColor,
+            },
+        })
+    );
+  }, [categories, displayedTask, scheduledTask, backgroundColor1, backgroundColor2, textColor, buttonColor]);
+
 
   return (
+    // Main Container
     <div className="min-h-screen" style={{ background: `linear-gradient(to bottom right, ${backgroundColor1}, ${backgroundColor2})` }}>
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Week View */}
+        
+        {/* ===== DATE HEADER SECTION ===== */}
         <div className="mb-8">
+          {/* Current Date Display */}
           <div className="text-3xl text-center mb-6 font-normal text-gray-900" style={{ fontFamily: 'system-ui', color: textColor }}>
             {currentDate.toLocaleDateString('en-US', { 
               weekday: 'long',
@@ -180,125 +283,152 @@ const DailyPlanner = () => {
               day: 'numeric'
             })}
           </div>
+  
+          {/* Week View */}
           <div className="flex justify-center gap-4 mb-8">
             {weekDates.map((date, index) => (
               <div key={index} className="text-center">
                 <div className="text-sm text-gray-700 mb-2 font-medium">
                   {weekDays[index][0]}
                 </div>
-                <div 
-                  className={`w-10 h-10 flex items-center justify-center rounded-full font-normal
-                    ${date.getDate() === currentDate.getDate() ? 
-                      'bg-[#FBA2BE] text-white' : 
-                      'text-gray-900'
-                    }`}
-                >
+                <div
+                  className={`w-10 h-10 flex items-center justify-center rounded-full font-normal`}
+                  style={{
+                      backgroundColor: date.getDate() === currentDate.getDate() ? buttonColor : 'transparent',
+                      color: date.getDate() === currentDate.getDate() ? 'white' : 'gray',
+                  }}
+              >
                   {date.getDate()}
-                </div>
+              </div>
               </div>
             ))}
           </div>
         </div>
+  
+        {/* ===== SETTINGS PANEL ===== */}
         <div className="absolute top-4 right-4">
           <Button 
             variant="ghost" 
             size="icon" 
             className="bg-white/70 hover:bg-white/90"
-            onClick={() => setShowSettings(!showSettings)} // Add this state
+            onClick={() => setShowSettings(!showSettings)}
           >
             <Settings className="h-4 w-4" />
           </Button>
           
           {showSettings && (
-          <Card className="absolute right-0 mt-2 p-4 bg-white/90 shadow-lg w-64">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Gradient Top:</span>
-                <input
-                  type="color"
-                  value={backgroundColor1}
-                  onChange={(e) => setBackgroundColor1(e.target.value)}
-                  className="rounded cursor-pointer"
-                  style={{ width: '40px', height: '40px' }} // Fixed size
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Gradient Bottom:</span>
-                <input
-                  type="color"
-                  value={backgroundColor2}
-                  onChange={(e) => setBackgroundColor2(e.target.value)}
-                  className="rounded cursor-pointer"
-                  style={{ width: '40px', height: '40px' }} // Fixed size
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Font Color:</span>
-                <input
-                  type="color"
-                  value={textColor}
-                  onChange={(e) => setTextColor(e.target.value)}
-                  className="rounded cursor-pointer"
-                  style={{ width: '40px', height: '40px' }} // Fixed size
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Button Color:</span>
-                <input
-                  type="color"
-                  value={buttonColor}
-                  onChange={(e) => setButtonColor(e.target.value)}
-                  className="rounded cursor-pointer"
-                  style={{ width: '40px', height: '40px' }} // Fixed size
-                />
-              </div>
-              <Button
-                onClick={resetColors}
-                className="whitespace-nowrap mt-4 w-full bg-gray-200 hover:bg-gray-300 text-gray-800"
-              >
-                Reset Colors
-              </Button>
-            </div>
-          </Card>
-        )}
-        </div>
-
-        <Tabs defaultValue="planner" className="w-full">
-          <TabsContent value="planner">
-            {/* Main Form */}
-            <form onSubmit={handleMainTaskSubmit} className="space-y-4 mb-6 max-w-xl mx-auto">
-              <div className="text-lg font-normal text-gray-900 text-center" style={{ fontFamily: 'system-ui', color: textColor }}>
-                What is expected of you today? 🌟
-              </div>
-              <div className="flex gap-4">
-                <Input
-                  value={mainTask}
-                  onChange={(e) => setMainTask(e.target.value)}
-                  placeholder="Enter your main task..."
-                  className="flex-grow bg-white/70"
-                />
-                <Button 
-                  type="submit"
-                  className="whitespace-nowrap text-black font-normal hover:bg-black hover:text-white"
-                  style={{ backgroundColor: buttonColor }}
+            <Card className="absolute right-0 mt-2 p-4 bg-white/90 shadow-lg w-64">
+              <div className="space-y-4">
+                {/* Color Picker Items */}
+                  <div className="flex items-center justify-between">
+                  <span className="text-sm">Gradient Top:</span>
+                  <input
+                    type="color"
+                    value={backgroundColor1}
+                    onChange={(e) => setBackgroundColor1(e.target.value)}
+                    className="rounded cursor-pointer"
+                    style={{ width: '40px', height: '40px' }} // Fixed size
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Gradient Bottom:</span>
+                  <input
+                    type="color"
+                    value={backgroundColor2}
+                    onChange={(e) => setBackgroundColor2(e.target.value)}
+                    className="rounded cursor-pointer"
+                    style={{ width: '40px', height: '40px' }} // Fixed size
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Font Color:</span>
+                  <input
+                    type="color"
+                    value={textColor}
+                    onChange={(e) => setTextColor(e.target.value)}
+                    className="rounded cursor-pointer"
+                    style={{ width: '40px', height: '40px' }} // Fixed size
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Button Color:</span>
+                  <input
+                    type="color"
+                    value={buttonColor}
+                    onChange={(e) => setButtonColor(e.target.value)}
+                    className="rounded cursor-pointer"
+                    style={{ width: '40px', height: '40px' }} // Fixed size
+                  />
+                </div>
+                <Button
+                  onClick={resetColors}
+                  className="whitespace-nowrap mt-4 w-full bg-gray-200 hover:bg-gray-300 text-gray-800"
                 >
-                  Submit ✨
+                  Reset Colors
                 </Button>
               </div>
-            </form>
-
-            {/* Displayed Task */}
-            {displayedTask && (
-              <Card className="mb-6 bg-white/70 border-none">
-                <CardContent className="p-4">
-                  <div className="text-lg font-normal text-gray-900" style={{ fontFamily: 'system-ui', color: textColor }}>
-                    🎯 {displayedTask}
+            </Card>
+          )}
+        </div>
+  
+        {/* ===== MAIN CONTENT TABS ===== */}
+        <Tabs defaultValue="planner" className="w-full">
+          {/* === PLANNER TAB === */}
+          <TabsContent value="planner">
+            {/* Main Task Input/Display */}
+            {!displayedTask ? (
+              <form onSubmit={handleMainTaskSubmit} className="space-y-4 mb-6 max-w-md mx-auto">
+                <div className="text-lg font-normal text-gray-900 text-center" style={{ fontFamily: 'system-ui', color: textColor }}>
+                  What is expected of you today? 🌟
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Input
+                    value={mainTask}
+                    onChange={(e) => setMainTask(e.target.value)}
+                    placeholder="Enter your main task..."
+                    className="flex-grow bg-white/70 max-w-md"
+                  />
+                  <div className="flex gap-2">
+                    <Input
+                      type="time"
+                      onChange={(e) => setStartTime(e.target.value)}
+                      className="bg-white/70 w-32"
+                    />
+                    <span className="self-center">to</span>
+                    <Input
+                      type="time"
+                      onChange={(e) => setEndTime(e.target.value)}
+                      className="bg-white/70 w-32"
+                    />
+                    <Button 
+                      type="submit"
+                      className="whitespace-nowrap text-black font-normal hover:bg-black hover:text-white"
+                      style={{ backgroundColor: buttonColor }}
+                    >
+                      Submit ✨
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+            </form>
+            ) : (
+              <div className="max-w-md mx-auto relative border border-black rounded p-4 bg-white/70 mb-8">
+                <Card className="border-none">
+                  <CardContent className="p-4 flex items-center justify-center text-center relative">
+                    <div className="text-2xl font-normal text-gray-900" style={{ fontFamily: 'system-ui', color: textColor }}>
+                      🎯 {displayedTask}
+                    </div>
+                    <button 
+                      onClick={() => setDisplayedTask('')} 
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black"
+                    >
+                      <CloseIcon size={20} />
+                    </button>
+                  </CardContent>
+                </Card>
+              </div>
             )}
-
-            {/* Categories */}
+  
+            {/* Category Cards */}
             <div className="flex flex-row gap-4 overflow-x-auto pb-4">
               {categories.map((category, categoryIndex) => (
                 <Card 
@@ -350,101 +480,174 @@ const DailyPlanner = () => {
                     )}
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Add new todo..."
-                        value={category.newTodo}
-                        onChange={(e) => handleTodoInputChange(categoryIndex, e.target.value)}
-                        className="bg-white/70 text-gray-900 placeholder:text-gray-500"
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            handleAddTodo(categoryIndex);
-                          }
-                        }}
-                      />
-                      <Button 
-                        onClick={() => handleAddTodo(categoryIndex)}
-                        size="sm"
-                        className="bg-white/70 hover:bg-white text-black px-2"
-                      >
-                        <Plus size={16} />
-                      </Button>
+                    <div className="flex flex-col gap-2">
+                        <Input
+                            placeholder="Add new todo..."
+                            value={category.newTodo}
+                            onChange={(e) => handleTodoInputChange(categoryIndex, e.target.value)}
+                            className="bg-white/70 text-gray-900 placeholder:text-gray-500"
+                            onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                    handleAddTodo(categoryIndex);
+                                }
+                            }}
+                        />
+
+                        {/* Conditionally render the time inputs if there's text in the newTodo input */}
+                        {category.newTodo && (
+                            <div className="flex gap-2">
+                                <Input
+                                    type="time"
+                                    onChange={(e) => handleTodoTimeChange(categoryIndex, 'start', e.target.value)}
+                                    className="bg-white/70 w-20 text-sm time-input"
+                                />
+                                <span className="self-center text-sm">to</span>
+                                <Input
+                                    type="time"
+                                    onChange={(e) => handleTodoTimeChange(categoryIndex, 'end', e.target.value)}
+                                    className="bg-white/70 w-20 text-sm time-input"
+                                />
+                                <Button 
+                                    onClick={() => handleAddTodo(categoryIndex)}
+                                    size="sm"
+                                    className="bg-white/70 hover:bg-white text-black px-2"
+                                >
+                                    <Plus size={16} />
+                                </Button>
+                            </div>
+                        )}
                     </div>
+
+                    {/* Existing todo items display */}
                     <div className="space-y-2">
-                      {category.todos.map((todo, todoIndex) => (
-                        <div 
-                          key={todoIndex} 
-                          className="flex items-center gap-2 font-normal text-gray-900 group relative hover:bg-white/50 rounded-lg p-2 transition-all" 
-                          style={{ fontFamily: 'system-ui', color: textColor }}
-                        >
-                          <Checkbox
-                            checked={todo.completed}
-                            onCheckedChange={() => toggleTodo(categoryIndex, todoIndex)}
-                          />
-                          <div className="flex flex-col">
-                            <span className={todo.completed ? 'line-through' : ''}>
-                              {todo.text}
-                            </span>
-                            {todo.dueDate && (
-                              <span className="text-sm text-gray-500">
-                                Due: {todo.dueDate}
-                              </span>
-                            )}
-                          </div>
-                          <div className="opacity-0 group-hover:opacity-100 absolute right-2 flex gap-2">
-                            <input
-                              type="date"
-                              value={todo.dueDate || ''}
-                              onChange={(e) => updateTodoDueDate(categoryIndex, todoIndex, e.target.value)}
-                              className="bg-transparent border-none text-sm text-gray-500 hover:text-gray-700"
-                            />
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-gray-500 hover:text-red-500"
-                              onClick={() => deleteTodo(categoryIndex, todoIndex)}
+                        {category.todos.map((todo, todoIndex) => (
+                            <div 
+                                key={todoIndex} 
+                                className="flex items-center gap-2 font-normal text-gray-900 group relative hover:bg-white/50 rounded-lg p-2 transition-all" 
+                                style={{ fontFamily: 'system-ui', color: textColor }}
                             >
-                              <X size={16} />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+                                <Checkbox
+                                    checked={todo.completed}
+                                    onCheckedChange={() => toggleTodo(categoryIndex, todoIndex)}
+                                />
+                                <div className="flex flex-col">
+                                    <span className={todo.completed ? 'line-through' : ''}>
+                                        {todo.text}
+                                    </span>
+                                    {todo.dueDate && (
+                                        <span className="text-sm text-gray-500">
+                                            Due: {todo.dueDate}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="opacity-0 group-hover:opacity-100 absolute right-2 flex gap-2">
+                                    <input
+                                        type="date"
+                                        value={todo.dueDate || ''}
+                                        onChange={(e) => updateTodoDueDate(categoryIndex, todoIndex, e.target.value)}
+                                        className="bg-transparent border-none text-sm text-gray-500 hover:text-gray-700"
+                                    />
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-gray-500 hover:text-red-500"
+                                        onClick={() => deleteTodo(categoryIndex, todoIndex)}
+                                    >
+                                        <CloseIcon size={16} />
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                  </CardContent>
+                </CardContent>
                 </Card>
               ))}
             </div>
           </TabsContent>
-
+  
+          {/* === CALENDAR TAB === */}
           <TabsContent value="calendar">
             <Card className="border-none bg-white/70">
               <CardContent className="pt-6">
-                <div className="grid grid-cols-7 gap-2 mb-2">
-                  {weekDays.map(day => (
-                    <div key={day} className="text-center text-gray-700 font-normal">
-                      {day[0]}
-                    </div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-7 gap-2">
-                  {monthDays.map((day, index) => (
-                    <div 
-                      key={index} 
-                      className={`text-center p-2 rounded-full font-normal ${
-                        day === currentDate.getDate() 
-                          ? 'bg-[#FBA2BE] text-white' 
-                          : 'text-gray-900'
-                      }`}
+                  <div className="grid grid-cols-7 gap-2 mb-2">
+                    {weekDays.map(day => (
+                      <div key={day} className="text-center text-gray-700 font-normal">
+                        {day[0]}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-2">
+                    {monthDays.map((day, index) => (
+                      <div
+                        key={index}
+                        className={`text-center p-2 rounded-full font-normal`}
+                        style={{
+                            backgroundColor: day === currentDate.getDate() ? buttonColor : 'transparent',
+                            color: day === currentDate.getDate() ? 'white' : 'gray',
+                        }}
                     >
-                      {day}
+                        {day}
                     </div>
-                  ))}
-                </div>
-              </CardContent>
+                    ))}
+                  </div>
+                </CardContent>
             </Card>
           </TabsContent>
+  
+          {/* === SCHEDULE TAB === */}
+          <TabsContent value="schedule">
+          <div className="schedule-view max-w-md mx-auto bg-white/70 p-4">
+              {[...Array(24).keys()].map((hour) => (
+                  <div key={hour} className="hour-slot flex items-center border-t h-12">
+                      <span className="text-gray-500 w-12">
+                          {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
+                      </span>
+                      <div className="flex-grow relative">
+                          {/* Show main task with conditional strikethrough */}
+                          {scheduledTask &&
+                              getHourFromTime(scheduledTask.startTime) === hour && (
+                                  <div
+                                      className="absolute left-0 w-full rounded px-2"
+                                      style={{
+                                          backgroundColor: buttonColor,
+                                          height: `${getTimeDifferenceInHours(
+                                              scheduledTask.startTime,
+                                              scheduledTask.endTime
+                                          ) * 48}px`,
+                                      }}
+                                  >
+                                      <span className={scheduledTask.completed ? 'line-through' : ''}>
+                                          {scheduledTask.text}
+                                      </span>
+                                  </div>
+                              )}
 
-          {/* Navigation Tabs - Outside TabsContent but inside Tabs */}
+                          {/* Show category todos with conditional strikethrough */}
+                          {categories.flatMap((category) =>
+                              category.todos
+                                  .filter((todo) => todo.startTime && getHourFromTime(todo.startTime) === hour)
+                                  .map((todo, idx) => (
+                                      <div
+                                          key={idx}
+                                          className="absolute left-0 w-full rounded px-2"
+                                          style={{
+                                              backgroundColor: category.color + '80',
+                                              height: `${getTimeDifferenceInHours(todo.startTime, todo.endTime) * 48}px`,
+                                          }}
+                                      >
+                                          <span className={todo.completed ? 'line-through' : ''}>
+                                              {todo.text}
+                                          </span>
+                                      </div>
+                                  ))
+                          )}
+                      </div>
+                  </div>
+              ))}
+          </div>
+          </TabsContent>
+  
+          {/* === NAVIGATION TABS === */}
           <TabsList className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white/70">
             <TabsTrigger
               value="planner"
@@ -458,21 +661,32 @@ const DailyPlanner = () => {
               Planner
             </TabsTrigger>
             <TabsTrigger
-              value="calendar"
-              onClick={() => setActivePage('calendar')}
+                value="calendar"
+                onClick={() => setActivePage('calendar')}
+                style={{
+                    backgroundColor: activePage === 'calendar' ? buttonColor : 'white',
+                    color: activePage === 'calendar' ? 'white' : 'black',
+                }}
+                className="font-normal transition-colors"
+            >
+                Calendar
+            </TabsTrigger>
+            <TabsTrigger
+              value="schedule"
+              onClick={() => setActivePage('schedule')}
               style={{
-                backgroundColor: activePage === 'calendar' ? buttonColor : 'white',
-                color: activePage === 'calendar' ? 'white' : 'black'
+                backgroundColor: activePage === 'schedule' ? buttonColor : 'white',
+                color: activePage === 'schedule' ? 'white' : 'black'
               }}
               className="font-normal transition-colors"
             >
-              Calendar
+              Schedule
             </TabsTrigger>
           </TabsList>
         </Tabs>
+  
       </div>
     </div>
   );
-};
-
+ };
 export default DailyPlanner;
