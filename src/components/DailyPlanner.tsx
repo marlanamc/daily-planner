@@ -639,32 +639,34 @@ const DailyPlanner = () => {
           {/* === SCHEDULE TAB === */}
           <TabsContent value="schedule">
           <div className="schedule-view max-w-md mx-auto bg-white/70 p-4">
-              {[...Array(24).keys()].map((hour) => (
-                  <div key={hour} className="hour-slot flex items-center border-t h-12">
-                      <span className="text-gray-500 w-12">
-                          {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
-                      </span>
-                      <div className="flex-grow relative">
-                          {/* Show main task with conditional strikethrough */}
-                          {scheduledTask &&
-                            scheduledTask.startTime &&
-                            scheduledTask.endTime &&
-                            getHourFromTime(scheduledTask.startTime) === hour && (
-                                <div
-                                    className="absolute left-0 w-full rounded px-2"
-                                    style={{
-                                        backgroundColor: buttonColor,
-                                        height: scheduledTask.startTime && scheduledTask.endTime
-                                            ? `${getTimeDifferenceInHours(scheduledTask.startTime, scheduledTask.endTime) * 48}px`
-                                            : '0px', // Fallback
-                                    }}
-                                >
-                                    <span className={scheduledTask.completed ? 'line-through' : ''}>
-                                        {scheduledTask.text}
-                                    </span>
-                                </div>
-                            )
-                          }
+          {[...Array(24).keys()].map((hour) => (
+              <div key={hour} className="hour-slot flex items-center border-t h-12">
+                <span className="text-gray-500 w-12">
+                  {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
+                </span>
+                <div className="flex-grow relative">
+                  {scheduledTask &&
+                    getHourFromTime(scheduledTask.startTime) === hour && (
+                      <div
+                        className="absolute left-0 w-full rounded px-2"
+                        style={{
+                          backgroundColor: buttonColor,
+                          height: getTimeDifferenceInHours(
+                            scheduledTask.startTime,
+                            scheduledTask.endTime
+                          )
+                            ? `${getTimeDifferenceInHours(
+                                scheduledTask.startTime,
+                                scheduledTask.endTime
+                              ) * 48}px`
+                            : '0px', // Fallback
+                        }}
+                      >
+                        <span className={scheduledTask.completed ? 'line-through' : ''}>
+                          {scheduledTask.text}
+                        </span>
+                      </div>
+                    )}
 
                           {/* Show category todos with conditional strikethrough */}
                           {categories.flatMap((category) =>
