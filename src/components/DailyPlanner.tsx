@@ -184,12 +184,18 @@ const DailyPlanner = () => {
     setCategories(updatedCategories);
   };
 
-  const getTaskHeight = (scheduledTask: ScheduledTask | null): string => {
-    if (!scheduledTask || !scheduledTask.startTime || !scheduledTask.endTime) {
-        return '0px'; // Fallback height
+  const isScheduledTaskValid = (
+    task: ScheduledTask | null
+): task is ScheduledTask & { startTime: string; endTime: string } => {
+    return !!task?.startTime && !!task?.endTime;
+};
+
+const getTaskHeight = (scheduledTask: ScheduledTask | null): string => {
+    if (!isScheduledTaskValid(scheduledTask)) {
+        return '0px'; // Fallback height if task is invalid
     }
     return `${getTimeDifferenceInHours(scheduledTask.startTime, scheduledTask.endTime) * 48}px`;
-  };
+};
 
 
     // For main task
