@@ -76,11 +76,12 @@ const DailyPlanner = () => {
     return week;
   };
 
-  const getHourFromTime = (time) => {
-    if (!time) return null; // Handle null or undefined inputs
-    const [hour] = time.split(':').map(Number); // Split the time string and convert to number
-    return hour;
+  const getHourFromTime = (time: string | null) => {
+      if (!time) return null; // Handle null or undefined inputs
+      const [hour] = time.split(':').map(Number); // Split the time string and convert to number
+      return hour;
   };
+
 
   const getTimeDifferenceInHours = (startTime, endTime) => {
     if (!startTime || !endTime) return null; // Handle null or undefined inputs
