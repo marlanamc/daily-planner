@@ -1,24 +1,32 @@
-class ErrorBoundary extends React.Component<
-    { children: React.ReactNode },
-    { hasError: boolean }
-> {
-    constructor(props: { children: React.ReactNode }) {
-        super(props);
-        this.state = { hasError: false };
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+
+interface Props {
+    children: ReactNode;
+}
+
+interface State {
+    hasError: boolean;
+    error: Error | null;
+}
+
+class ErrorBoundary extends Component<Props, State> {
+    public state: State = {
+        hasError: false,
+        error: null
+    };
+
+    public static getDerivedStateFromError(error: Error): State {
+        return { 
+            hasError: true, 
+            error 
+        };
     }
 
-    static getDerivedStateFromError() {
-        return { hasError: true };
+    public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+        console.error('Uncaught error:', error, errorInfo);
     }
 
-    componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        console.error('Error caught by boundary:', error, errorInfo);
-    }
-
-    render() {
-        if (this.state.hasError) {
-            return <div>Something went wrong. Please refresh the page.</div>;
-        }
+    public render() {
         if (this.state.hasError) {
             return (
                 <div className="error-boundary p-4 m-4 border border-red-500 rounded bg-red-100">
@@ -34,7 +42,4 @@ class ErrorBoundary extends React.Component<
     }
 }
 
-// Use it in your app:
-<ErrorBoundary>
-    <DailyPlanner />
-</ErrorBoundary> 
+export default ErrorBoundary; 
