@@ -190,14 +190,16 @@ const DailyPlanner = () => {
 };
 
 
-  const handleMainTaskSubmit = (e) => {
-    e.preventDefault();
+  const handleMainTaskSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); // Prevent the default form submission behavior
+
     if (mainTask) {
+        // Attempt to extract the time from the main task string
         const timeMatch = mainTask.match(/(\d{1,2})\s*(AM|PM)/i);
         if (timeMatch) {
             const hour = parseInt(timeMatch[1]);
             const isPM = timeMatch[2].toUpperCase() === 'PM';
-            const taskHour = isPM && hour !== 12 ? hour + 12 : hour % 12;
+            const taskHour = isPM && hour !== 12 ? hour + 12 : hour % 12; // Convert to 24-hour time format
 
             setScheduledTask({
                 text: mainTask,
@@ -207,6 +209,7 @@ const DailyPlanner = () => {
                 completed: false,
             });
         } else {
+            // If no time is extracted, set the task without an hour
             setScheduledTask({
                 text: mainTask,
                 startTime,
@@ -215,12 +218,14 @@ const DailyPlanner = () => {
             });
         }
 
-        setDisplayedTask(mainTask); // Ensure this is set correctly
+        // Update the displayed task and reset form fields
+        setDisplayedTask(mainTask);
         setMainTask('');
         setStartTime('');
         setEndTime('');
     }
-};
+  };
+
 
   const resetColors = () => {
     setBackgroundColor1('#fce7f3');
