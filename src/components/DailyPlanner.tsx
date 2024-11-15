@@ -83,7 +83,7 @@ const DailyPlanner = () => {
   };
 
 
-  const getTimeDifferenceInHours = (startTime, endTime) => {
+  const getTimeDifferenceInHours = (startTime: string | null, endTime: string | null) => {
     if (!startTime || !endTime) return null; // Handle null or undefined inputs
 
     // Parse the hours and minutes from both time strings
@@ -99,7 +99,8 @@ const DailyPlanner = () => {
 
     // Convert back to hours and return
     return differenceInMinutes / 60;
-  };
+};
+
 
   const weekDates = getWeekDates();
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
