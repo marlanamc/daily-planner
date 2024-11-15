@@ -184,12 +184,13 @@ const DailyPlanner = () => {
     setCategories(updatedCategories);
   };
 
-  const getTaskHeight = (scheduledTask: ScheduledTask | null) => {
-    if (scheduledTask?.startTime && scheduledTask?.endTime) {
-        return `${getTimeDifferenceInHours(scheduledTask.startTime, scheduledTask.endTime) * 48}px`;
+  const getTaskHeight = (scheduledTask: ScheduledTask | null): string => {
+    if (!scheduledTask || !scheduledTask.startTime || !scheduledTask.endTime) {
+        return '0px'; // Fallback height
     }
-    return '0px'; // Fallback height if startTime or endTime is null
+    return `${getTimeDifferenceInHours(scheduledTask.startTime, scheduledTask.endTime) * 48}px`;
   };
+
 
     // For main task
   const [startTime, setStartTime] = useState('');
@@ -634,21 +635,21 @@ const DailyPlanner = () => {
                       <div className="flex-grow relative">
                           {/* Show main task with conditional strikethrough */}
                           {scheduledTask &&
-                              scheduledTask.startTime &&
-                              scheduledTask.endTime &&
-                              getHourFromTime(scheduledTask.startTime) === hour && (
-                                  <div
-                                      className="absolute left-0 w-full rounded px-2"
-                                      style={{
-                                          backgroundColor: buttonColor,
-                                          height: getTaskHeight(scheduledTask),
-                                      }}
-                                  >
-                                      <span className={scheduledTask.completed ? 'line-through' : ''}>
-                                          {scheduledTask.text}
-                                      </span>
-                                  </div>
-                              )
+                            scheduledTask.startTime &&
+                            scheduledTask.endTime &&
+                            getHourFromTime(scheduledTask.startTime) === hour && (
+                                <div
+                                    className="absolute left-0 w-full rounded px-2"
+                                    style={{
+                                        backgroundColor: buttonColor,
+                                        height: getTaskHeight(scheduledTask),
+                                    }}
+                                >
+                                    <span className={scheduledTask.completed ? 'line-through' : ''}>
+                                        {scheduledTask.text}
+                                    </span>
+                                </div>
+                            )
                           }
 
                           {/* Show category todos with conditional strikethrough */}
