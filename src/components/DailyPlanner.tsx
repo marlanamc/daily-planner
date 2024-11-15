@@ -130,12 +130,13 @@ const DailyPlanner = () => {
 
     if (updatedCategories[categoryIndex].newTodo.trim()) {
         updatedCategories[categoryIndex].todos.push({
-            text: updatedCategories[categoryIndex].newTodo,
-            completed: false,
-            dueDate: null,
-            startTime: updatedCategories[categoryIndex].newTodoTimes?.start || null,
-            endTime: updatedCategories[categoryIndex].newTodoTimes?.end || null,
-        });
+          text: updatedCategories[categoryIndex].newTodo,
+          completed: false,
+          dueDate: undefined, // Use undefined instead of null
+          startTime: updatedCategories[categoryIndex].newTodoTimes?.start || undefined,
+          endTime: updatedCategories[categoryIndex].newTodoTimes?.end || undefined,
+      });
+    
 
         // Reset input fields for the category
         updatedCategories[categoryIndex].newTodo = '';
