@@ -18,21 +18,23 @@ interface Todo {
 }
 
 interface Category {
-  name: string;         // Category name like "Wellness"
-  todos: Todo[];        // List of todos in this category
-  color: string;        // Color of the category card
-  newTodo: string;      // Text being typed in the "Add todo" box
+  name: string; // Category name like "Wellness"
+  todos: Todo[]; // List of todos in this category
+  color: string; // Color of the category card
+  newTodo: string; // Text being typed in the "Add todo" box
+  newTodoTimes?: { start: string; end: string } | null; // Times for the new todo (optional)
 }
+
 
 const DailyPlanner = () => {
       // Core state
   const [mainTask, setMainTask] = useState('');
   const [displayedTask, setDisplayedTask] = useState('');
   const [categories, setCategories] = useState<Category[]>([
-    { name: 'Wellness ✨', todos: [], color: '#FBA2BE', newTodo: '' },
-    { name: 'Apartment 🏠', todos: [], color: '#FFD5DD', newTodo: '' },
-    { name: 'Job Search 💼', todos: [], color: '#C8E8E5', newTodo: '' }
-  ]);
+    { name: 'Wellness ✨', todos: [], color: '#FBA2BE', newTodo: '', newTodoTimes: null },
+    { name: 'Apartment 🏠', todos: [], color: '#FFD5DD', newTodo: '', newTodoTimes: null },
+    { name: 'Job Search 💼', todos: [], color: '#C8E8E5', newTodo: '', newTodoTimes: null },
+]);
   const [editingCategory, setEditingCategory] = useState<number | null>(null);
   const [newCategoryName, setNewCategoryName] = useState('');
 
@@ -119,31 +121,25 @@ const DailyPlanner = () => {
   }
 
 
-  const handleTodoInputChange = (categoryIndex: number, value: string) => {
-    const updatedCategories = [...categories];
-    updatedCategories[categoryIndex].newTodo = value;
-    setCategories(updatedCategories);
-  };
-
   const handleAddTodo = (categoryIndex: number) => {
     const updatedCategories = [...categories];
 
     if (updatedCategories[categoryIndex].newTodo.trim()) {
         updatedCategories[categoryIndex].todos.push({
-          text: updatedCategories[categoryIndex].newTodo,
-          completed: false,
-          dueDate: undefined, // Use undefined instead of null
-          startTime: updatedCategories[categoryIndex].newTodoTimes?.start || undefined,
-          endTime: updatedCategories[categoryIndex].newTodoTimes?.end || undefined,
-      });
-    
+            text: updatedCategories[categoryIndex].newTodo,
+            completed: false,
+            dueDate: undefined, // Use undefined instead of null
+            startTime: updatedCategories[categoryIndex].newTodoTimes?.start || undefined,
+            endTime: updatedCategories[categoryIndex].newTodoTimes?.end || undefined,
+        });
 
-        // Reset input fields for the category
+        // Reset newTodo and newTodoTimes
         updatedCategories[categoryIndex].newTodo = '';
-        updatedCategories[categoryIndex].newTodoTimes = { start: '', end: '' };
+        updatedCategories[categoryIndex].newTodoTimes = null;
         setCategories(updatedCategories);
     }
 };
+
 
 
   const updateTodoDueDate = (categoryIndex: number, todoIndex: number, date: string) => {
