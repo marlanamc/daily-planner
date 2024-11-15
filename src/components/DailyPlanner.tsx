@@ -190,13 +190,17 @@ const DailyPlanner = () => {
     return !!task?.startTime && !!task?.endTime;
 };
 
-const getTaskHeight = (scheduledTask: ScheduledTask | null): string => {
-  if (!scheduledTask || !scheduledTask.startTime || !scheduledTask.endTime) {
+  const getTaskHeight = (scheduledTask: ScheduledTask | null): string => {
+    if (!scheduledTask || !scheduledTask.startTime || !scheduledTask.endTime) {
       return '0px'; // Fallback height
-  }
-  // Ensure non-null access is explicitly enforced here
-  return `${getTimeDifferenceInHours(scheduledTask.startTime!, scheduledTask.endTime!) * 48}px`;
-};
+    }
+
+    const startTime = scheduledTask.startTime;
+    const endTime = scheduledTask.endTime;
+
+    // Ensure non-null access is explicitly enforced here
+    return `${getTimeDifferenceInHours(startTime, endTime) * 48}px`;
+  };
 
 
     // For main task
