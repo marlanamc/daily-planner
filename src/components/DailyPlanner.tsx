@@ -10,6 +10,7 @@ import { Plus, X as CloseIcon, Calendar as CalendarIcon, Settings } from 'lucide
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Todo {
+  id: string;
   text: string;          // The actual todo text
   completed: boolean;    // Whether it's checked off or not
   dueDate?: string;     // Optional date when it's due
@@ -134,6 +135,7 @@ const DailyPlanner = () => {
 
     if (updatedCategories[categoryIndex].newTodo.trim()) {
         updatedCategories[categoryIndex].todos.push({
+            id: crypto.randomUUID(),
             text: updatedCategories[categoryIndex].newTodo,
             completed: false,
             dueDate: undefined, // Use undefined instead of null
@@ -277,17 +279,29 @@ const DailyPlanner = () => {
   };
 
   useEffect(() => {
-    const savedData = localStorage.getItem('dailyPlanner');
-    if (savedData) {
-      const { categories, mainTask, colors } = JSON.parse(savedData);
-      setCategories(categories);
-      setDisplayedTask(mainTask);
-      if (colors) {
-        setBackgroundColor1(colors.bg1);
-        setBackgroundColor2(colors.bg2);
-        setTextColor(colors.text);
-        setButtonColor(colors.button || '#FBA2BE');
-      }
+    try {
+        const savedData = localStorage.getItem('dailyPlanner');
+        if (savedData) {
+            const parsed = JSON.parse(savedData);
+            if (parsed && typeof parsed === 'object') {
+                const { categories, mainTask, colors } = parsed;
+                if (Array.isArray(categories)) {
+                    setCategories(categories);
+                }
+                if (typeof mainTask === 'string') {
+                    setDisplayedTask(mainTask);
+                }
+                if (colors && typeof colors === 'object') {
+                    setBackgroundColor1(colors.bg1 || '#fce7f3');
+                    setBackgroundColor2(colors.bg2 || '#dbeafe');
+                    setTextColor(colors.text || '#111827');
+                    setButtonColor(colors.button || '#FBA2BE');
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading saved data:', error);
+        // Could also set some default state here
     }
   }, []);
   
@@ -528,7 +542,7 @@ const DailyPlanner = () => {
                             value={category.newTodo}
                             onChange={(e) => handleTodoInputChange(categoryIndex, e.target.value)}
                             className="bg-white/70 text-gray-900 placeholder:text-gray-500"
-                            onKeyPress={(e) => {
+                            onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => {
                                 if (e.key === 'Enter') {
                                     handleAddTodo(categoryIndex);
                                 }
@@ -540,6 +554,7 @@ const DailyPlanner = () => {
                             <div className="flex gap-2">
                                 <Input
                                     type="time"
+                                    value={category.newTodoTimes?.start || ''}
                                     onChange={(e) => handleTodoTimeChange(categoryIndex, 'start', e.target.value)}
                                     className="bg-white/70 w-20 text-sm time-input"
                                 />
@@ -562,15 +577,14 @@ const DailyPlanner = () => {
 
                     {/* Existing todo items display */}
                     <div className="space-y-2">
-                        {category.todos.map((todo, todoIndex) => (
-                            <div 
-                                key={todoIndex} 
+                        {category.todos.map((todo) => (
+                            <div key={todo.id}
                                 className="flex items-center gap-2 font-normal text-gray-900 group relative hover:bg-white/50 rounded-lg p-2 transition-all" 
                                 style={{ fontFamily: 'system-ui', color: textColor }}
                             >
                                 <Checkbox
                                     checked={todo.completed}
-                                    onCheckedChange={() => toggleTodo(categoryIndex, todoIndex)}
+                                    onCheckedChange={() => toggleTodo(categoryIndex, category.todos.indexOf(todo))}
                                 />
                                 <div className="flex flex-col">
                                     <span className={todo.completed ? 'line-through' : ''}>
@@ -586,14 +600,14 @@ const DailyPlanner = () => {
                                     <input
                                         type="date"
                                         value={todo.dueDate || ''}
-                                        onChange={(e) => updateTodoDueDate(categoryIndex, todoIndex, e.target.value)}
+                                        onChange={(e) => updateTodoDueDate(categoryIndex, category.todos.indexOf(todo), e.target.value)}
                                         className="bg-transparent border-none text-sm text-gray-500 hover:text-gray-700"
                                     />
                                     <Button
                                         variant="ghost"
                                         size="sm"
                                         className="text-gray-500 hover:text-red-500"
-                                        onClick={() => deleteTodo(categoryIndex, todoIndex)}
+                                        onClick={() => deleteTodo(categoryIndex, category.todos.indexOf(todo))}
                                     >
                                         <CloseIcon size={16} />
                                     </Button>
@@ -651,15 +665,13 @@ const DailyPlanner = () => {
                         className="absolute left-0 w-full rounded px-2"
                         style={{
                           backgroundColor: buttonColor,
-                          height: getTimeDifferenceInHours(
-                            scheduledTask.startTime,
-                            scheduledTask.endTime
-                          )
-                            ? `${getTimeDifferenceInHours(
-                                scheduledTask.startTime,
-                                scheduledTask.endTime
-                              ) * 48}px`
-                            : '0px', // Fallback
+                          height: (() => {
+                            const diff = getTimeDifferenceInHours(
+                              scheduledTask.startTime,
+                              scheduledTask.endTime
+                            );
+                            return diff !== null ? `${diff * 48}px` : '0px';
+                          })()
                         }}
                       >
                         <span className={scheduledTask.completed ? 'line-through' : ''}>
@@ -673,12 +685,14 @@ const DailyPlanner = () => {
                               category.todos
                                   .filter((todo) => todo.startTime && getHourFromTime(todo.startTime) === hour)
                                   .map((todo, idx) => (
-                                      <div
-                                          key={idx}
+                                      <div key={todo.id}
                                           className="absolute left-0 w-full rounded px-2"
                                           style={{
                                               backgroundColor: category.color + '80',
-                                              height: `${getTimeDifferenceInHours(todo.startTime, todo.endTime) * 48}px`,
+                                              height: (() => {
+                                                  const diff = getTimeDifferenceInHours(todo.startTime, todo.endTime);
+                                                  return diff !== null ? `${diff * 48}px` : '0px';
+                                              })()
                                           }}
                                       >
                                           <span className={todo.completed ? 'line-through' : ''}>
