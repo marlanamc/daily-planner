@@ -194,12 +194,13 @@ const DailyPlanner = () => {
     if (!scheduledTask || !scheduledTask.startTime || !scheduledTask.endTime) {
       return '0px'; // Fallback height
     }
-
+  
     const startTime = scheduledTask.startTime;
     const endTime = scheduledTask.endTime;
-
+  
     // Ensure non-null access is explicitly enforced here
-    return `${getTimeDifferenceInHours(startTime, endTime) * 48}px`;
+    const timeDifferenceInHours = getTimeDifferenceInHours(startTime, endTime);
+    return timeDifferenceInHours !== null ? `${timeDifferenceInHours * 48}px` : '0px';
   };
 
 
