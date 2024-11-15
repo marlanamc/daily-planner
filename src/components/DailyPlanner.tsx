@@ -197,6 +197,12 @@ const DailyPlanner = () => {
     setCategories(updatedCategories);
 };
 
+  const handleTodoInputChange = (categoryIndex: number, value: string) => {
+    const updatedCategories = [...categories];
+    updatedCategories[categoryIndex].newTodo = value;
+    setCategories(updatedCategories);
+};
+
 
   const handleMainTaskSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); // Prevent the default form submission behavior
