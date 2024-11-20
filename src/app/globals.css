@@ -138,3 +138,8 @@ input, textarea {
     display: none;
 }
 
+/* When settings is open, prevent background scrolling */
+body.settings-open {
+    overflow: hidden;
+}
+

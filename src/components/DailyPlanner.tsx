@@ -363,6 +363,11 @@ const DailyPlanner = () => {
     return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
 
+  const toggleSettings = () => {
+    setShowSettings(!showSettings);
+    document.body.classList.toggle('settings-open');
+  };
+
   return (
     // Main Container
     <div className="min-h-screen" style={{ background: `linear-gradient(to bottom right, ${backgroundColor1}, ${backgroundColor2})` }}>
@@ -417,63 +422,89 @@ const DailyPlanner = () => {
             variant="ghost" 
             size="icon" 
             className="bg-white/70 hover:bg-white/90"
-            onClick={() => setShowSettings(!showSettings)}
+            onClick={toggleSettings}
           >
             <Settings className="h-4 w-4" />
           </Button>
           
           {showSettings && (
-            <Card className="absolute right-0 mt-2 p-4 bg-white/90 shadow-lg w-64">
-              <div className="space-y-4">
-                {/* Color Picker Items */}
-                  <div className="flex items-center justify-between">
-                  <span className="text-sm">Gradient Top:</span>
-                  <input
-                    type="color"
-                    value={backgroundColor1}
-                    onChange={(e) => setBackgroundColor1(e.target.value)}
-                    className="rounded cursor-pointer"
-                    style={{ width: '40px', height: '40px' }} // Fixed size
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Gradient Bottom:</span>
-                  <input
-                    type="color"
-                    value={backgroundColor2}
-                    onChange={(e) => setBackgroundColor2(e.target.value)}
-                    className="rounded cursor-pointer"
-                    style={{ width: '40px', height: '40px' }} // Fixed size
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Font Color:</span>
-                  <input
-                    type="color"
-                    value={textColor}
-                    onChange={(e) => setTextColor(e.target.value)}
-                    className="rounded cursor-pointer"
-                    style={{ width: '40px', height: '40px' }} // Fixed size
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Button Color:</span>
-                  <input
-                    type="color"
-                    value={buttonColor}
-                    onChange={(e) => setButtonColor(e.target.value)}
-                    className="rounded cursor-pointer"
-                    style={{ width: '40px', height: '40px' }} // Fixed size
-                  />
-                </div>
-                <Button
-                  onClick={resetColors}
-                  className="whitespace-nowrap mt-4 w-full bg-gray-200 hover:bg-gray-300 text-gray-800"
+            <div 
+                className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+                onClick={() => setShowSettings(false)}
+            >
+                <div 
+                    className="bg-white rounded-lg p-6 w-full max-w-md space-y-4"
+                    onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
                 >
-                  Reset Colors
-                </Button>
-              </div>
-            </Card>
+                    <h3 className="text-lg font-semibold mb-4">Settings</h3>
+                    
+                    <div className="space-y-4">
+                        {/* Background Color 1 */}
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                Background Color 1
+                            </label>
+                            <input
+                                type="color"
+                                value={backgroundColor1}
+                                onChange={(e) => setBackgroundColor1(e.target.value)}
+                                className="w-full h-10 rounded cursor-pointer"
+                            />
+                        </div>
+
+                        {/* Background Color 2 */}
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                Background Color 2
+                            </label>
+                            <input
+                                type="color"
+                                value={backgroundColor2}
+                                onChange={(e) => setBackgroundColor2(e.target.value)}
+                                className="w-full h-10 rounded cursor-pointer"
+                            />
+                        </div>
+
+                        {/* Text Color */}
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                Text Color
+                            </label>
+                            <input
+                                type="color"
+                                value={textColor}
+                                onChange={(e) => setTextColor(e.target.value)}
+                                className="w-full h-10 rounded cursor-pointer"
+                            />
+                        </div>
+
+                        {/* Button Color */}
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                Button Color
+                            </label>
+                            <input
+                                type="color"
+                                value={buttonColor}
+                                onChange={(e) => setButtonColor(e.target.value)}
+                                className="w-full h-10 rounded cursor-pointer"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end mt-6">
+                        <Button
+                            onClick={() => setShowSettings(false)}
+                            style={{
+                                backgroundColor: buttonColor,
+                                color: 'white'
+                            }}
+                        >
+                            Close
+                        </Button>
+                    </div>
+                </div>
+            </div>
           )}
         </div>
   
