@@ -88,9 +88,9 @@ const DailyPlanner = () => {
   };
 
   const getHourFromTime = (time: string | null) => {
-      if (!time) return null; // Handle null or undefined inputs
-      const [hour] = time.split(':').map(Number); // Split the time string and convert to number
-      return hour;
+    if (!time) return null;
+    const [hour] = time.split(':').map(Number);
+    return hour - 6; // Subtract 6 to align with our display that starts at 6 AM
   };
 
 
@@ -322,6 +322,11 @@ const DailyPlanner = () => {
     );
   }, [categories, displayedTask, scheduledTask, backgroundColor1, backgroundColor2, textColor, buttonColor]);
 
+  // Add this helper function near your other utility functions
+  const isTimeInPast = (hour: number): boolean => {
+    const currentHour = new Date().getHours();
+    return hour < currentHour;
+  };
 
   return (
     // Main Container
@@ -671,64 +676,102 @@ const DailyPlanner = () => {
   
           {/* === SCHEDULE TAB === */}
           <TabsContent value="schedule">
-          <div className="schedule-view max-w-md mx-auto bg-white/70 p-4">
-          {[...Array(24).keys()].map((hour) => (
-              <div key={hour} className="hour-slot flex items-center border-t h-12">
-                <span className="text-gray-500 w-12">
-                  {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
-                </span>
-                <div className="flex-grow relative">
-                  {scheduledTask &&
-                    getHourFromTime(scheduledTask.startTime) === hour && (
-                      <div
-                        className="absolute left-0 w-full rounded px-2"
-                        style={{
-                          backgroundColor: buttonColor,
-                          height: (() => {
-                            const diff = getTimeDifferenceInHours(
-                              scheduledTask.startTime,
-                              scheduledTask.endTime
-                            );
-                            return diff !== null ? `${diff * 48}px` : '0px';
-                          })()
-                        }}
-                      >
-                        <span className={scheduledTask.completed ? 'line-through' : ''}>
-                          {scheduledTask.text}
-                        </span>
-                      </div>
-                    )}
+            <div className="schedule-view max-w-md mx-auto bg-white/70 p-4">
+                {/* Early Hours Collapsed Section */}
+                <div className="mb-2">
+                    <details className="cursor-pointer">
+                        <summary className="text-gray-500 p-2 hover:bg-white/50 rounded">
+                            12 AM - 6 AM
+                        </summary>
+                        {[...Array(6).keys()].map((hour) => (
+                            <div key={hour} className="relative">
+                                <div className="hour-slot flex items-start h-12 border-t border-gray-200">
+                                    <span className="text-gray-400 w-12">
+                                        {hour === 0 ? '12' : hour} AM
+                                    </span>
+                                    <div className="flex-grow relative">
+                                        {/* Task rendering for early hours */}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </details>
+                </div>
 
-                          {/* Show category todos with conditional strikethrough */}
-                          {categories.flatMap((category) =>
-                              category.todos
-                                  .filter((todo) => 
-                                      todo.startTime !== null && 
-                                      todo.startTime !== undefined && 
-                                      getHourFromTime(todo.startTime) === hour
-                                  )
-                                  .map((todo) => (
-                                      <div
-                                          key={todo.id}
-                                          className="absolute left-0 w-full rounded px-2"
-                                          style={{
-                                              backgroundColor: category.color + '80',
-                                              height: (() => {
-                                                  const diff = getTimeDifferenceInHours(todo.startTime || null, todo.endTime || null);
-                                                  return diff !== null ? `${diff * 48}px` : '0px';
-                                              })()
-                                          }}
-                                      >
-                                          <span className={todo.completed ? 'line-through' : ''}>
-                                              {todo.text}
-                                          </span>
-                                      </div>
-                                  ))
-                          )}
-                      </div>
-                  </div>
-              ))}
-          </div>
+                {/* Regular Hours */}
+                <div className="relative">
+                    {[...Array(18).keys()].map((hour) => {
+                        const displayHour = hour + 6;
+                        const isPast = isTimeInPast(displayHour);
+                        
+                        return (
+                            <div key={displayHour}>
+                                <div 
+                                    className={`hour-slot flex items-start h-12 border-t border-gray-200 transition-colors ${
+                                        isPast ? 'bg-gray-100/50' : ''
+                                    }`}
+                                >
+                                    <span className={`w-12 ${isPast ? 'text-gray-400' : 'text-gray-500'}`}>
+                                        {displayHour % 12 || 12} {displayHour < 12 ? 'AM' : 'PM'}
+                                    </span>
+                                    <div className="flex-grow">
+                                        {/* Time slot content */}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+
+                    {/* Tasks rendered outside the hour slots */}
+                    <div className="absolute top-0 left-12 right-0 h-full pointer-events-none">
+                        {/* Scheduled Task */}
+                        {scheduledTask && (
+                            <div
+                                className="absolute left-0 w-full rounded px-2 pointer-events-auto"
+                                style={{
+                                    backgroundColor: buttonColor,
+                                    height: (() => {
+                                        const diff = getTimeDifferenceInHours(
+                                            scheduledTask.startTime,
+                                            scheduledTask.endTime
+                                        );
+                                        return diff !== null ? `${diff * 48}px` : '0px';
+                                    })(),
+                                    top: `${(getHourFromTime(scheduledTask.startTime) || 0) * 48}px`
+                                }}
+                            >
+                                <span className={scheduledTask.completed ? 'line-through' : ''}>
+                                    {scheduledTask.text}
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Category Todos */}
+                        {categories.flatMap((category) =>
+                            category.todos
+                                .filter((todo) => todo.startTime !== null && todo.startTime !== undefined)
+                                .map((todo) => (
+                                    <div
+                                        key={todo.id}
+                                        className="absolute left-0 w-full rounded px-2 pointer-events-auto"
+                                        style={{
+                                            backgroundColor: category.color + '80',
+                                            height: (() => {
+                                                const diff = getTimeDifferenceInHours(todo.startTime || null, todo.endTime || null);
+                                                return diff !== null ? `${diff * 48}px` : '0px';
+                                            })(),
+                                            top: `${(getHourFromTime(todo.startTime || '') || 0) * 48}px`
+                                        }}
+                                    >
+                                        <span className={todo.completed ? 'line-through' : ''}>
+                                            {todo.text}
+                                        </span>
+                                    </div>
+                                ))
+                        )}
+                    </div>
+                </div>
+            </div>
           </TabsContent>
   
           {/* === NAVIGATION TABS === */}
