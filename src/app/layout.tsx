@@ -17,10 +17,16 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'Daily Planner',
+    startupImage: [
+      '/apple-splash-2048-2732.jpg',
+      '/apple-splash-1668-2224.jpg',
+      '/apple-splash-1536-2048.jpg',
+      '/apple-splash-1125-2436.jpg',
+      '/apple-splash-1242-2208.jpg',
+    ],
   },
-  themeColor: '#ffffff',
 }
 
 export default function RootLayout({
@@ -31,13 +37,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Daily Planner" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="full-screen" content="yes" />
+        <meta name="browsermode" content="application" />
       </head>
-      <body>{children}</body>
+      <body className="overscroll-none">{children}</body>
     </html>
   )
 }
