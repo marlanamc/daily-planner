@@ -363,49 +363,6 @@ const DailyPlanner = () => {
     return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
 
-  const toggleSettings = () => {
-    setShowSettings(!showSettings);
-    document.body.classList.toggle('settings-open');
-  };
-
-  // First, add useEffect to handle localStorage for scheduledTask
-  useEffect(() => {
-    // Load scheduled task from localStorage on component mount
-    const savedScheduledTask = localStorage.getItem('scheduledTask');
-    if (savedScheduledTask) {
-        setScheduledTask(JSON.parse(savedScheduledTask));
-    }
-  }, []);
-
-  // Update the useEffect that handles mainTask changes
-  useEffect(() => {
-    if (mainTask) {
-        setDisplayedTask(mainTask);
-        // Update scheduledTask when mainTask changes
-        const newScheduledTask = {
-            text: mainTask,
-            startTime: '09:00', // Default start time
-            endTime: '10:00',   // Default end time
-            completed: false
-        };
-        setScheduledTask(newScheduledTask);
-        localStorage.setItem('scheduledTask', JSON.stringify(newScheduledTask));
-        setMainTask('');
-    }
-  }, [mainTask]);
-
-  // Add a function to handle task completion
-  const toggleScheduledTaskCompletion = () => {
-    if (scheduledTask) {
-        const updatedTask = {
-            ...scheduledTask,
-            completed: !scheduledTask.completed
-        };
-        setScheduledTask(updatedTask);
-        localStorage.setItem('scheduledTask', JSON.stringify(updatedTask));
-    }
-  };
-
   return (
     // Main Container
     <div className="min-h-screen" style={{ background: `linear-gradient(to bottom right, ${backgroundColor1}, ${backgroundColor2})` }}>
@@ -460,103 +417,63 @@ const DailyPlanner = () => {
             variant="ghost" 
             size="icon" 
             className="bg-white/70 hover:bg-white/90"
-            onClick={toggleSettings}
+            onClick={() => setShowSettings(!showSettings)}
           >
             <Settings className="h-4 w-4" />
           </Button>
           
           {showSettings && (
-            <div 
-                className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-                onClick={() => setShowSettings(false)}
-            >
-                <div 
-                    className="bg-white rounded-lg p-6 w-full max-w-md space-y-4"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <h3 className="text-lg font-semibold mb-4">Settings</h3>
-                    
-                    <div className="space-y-4">
-                        {/* Background Color 1 */}
-                        <div>
-                            <label className="block text-sm font-medium mb-1">
-                                Background Color 1
-                            </label>
-                            <input
-                                type="color"
-                                value={backgroundColor1}
-                                onChange={(e) => setBackgroundColor1(e.target.value)}
-                                className="w-full h-10 rounded cursor-pointer"
-                            />
-                        </div>
-
-                        {/* Background Color 2 */}
-                        <div>
-                            <label className="block text-sm font-medium mb-1">
-                                Background Color 2
-                            </label>
-                            <input
-                                type="color"
-                                value={backgroundColor2}
-                                onChange={(e) => setBackgroundColor2(e.target.value)}
-                                className="w-full h-10 rounded cursor-pointer"
-                            />
-                        </div>
-
-                        {/* Text Color */}
-                        <div>
-                            <label className="block text-sm font-medium mb-1">
-                                Text Color
-                            </label>
-                            <input
-                                type="color"
-                                value={textColor}
-                                onChange={(e) => setTextColor(e.target.value)}
-                                className="w-full h-10 rounded cursor-pointer"
-                            />
-                        </div>
-
-                        {/* Button Color */}
-                        <div>
-                            <label className="block text-sm font-medium mb-1">
-                                Button Color
-                            </label>
-                            <input
-                                type="color"
-                                value={buttonColor}
-                                onChange={(e) => setButtonColor(e.target.value)}
-                                className="w-full h-10 rounded cursor-pointer"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-4 mt-6">
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setBackgroundColor1('#fce7f3');
-                                setBackgroundColor2('#dbeafe');
-                                setTextColor('#111827');
-                                setButtonColor('#FBA2BE');
-                            }}
-                            className="flex-1"
-                        >
-                            Reset Colors
-                        </Button>
-
-                        <Button
-                            onClick={() => setShowSettings(false)}
-                            style={{
-                                backgroundColor: buttonColor,
-                                color: 'white'
-                            }}
-                            className="flex-1"
-                        >
-                            Close
-                        </Button>
-                    </div>
+            <Card className="absolute right-0 mt-2 p-4 bg-white/90 shadow-lg w-64">
+              <div className="space-y-4">
+                {/* Color Picker Items */}
+                  <div className="flex items-center justify-between">
+                  <span className="text-sm">Gradient Top:</span>
+                  <input
+                    type="color"
+                    value={backgroundColor1}
+                    onChange={(e) => setBackgroundColor1(e.target.value)}
+                    className="rounded cursor-pointer"
+                    style={{ width: '40px', height: '40px' }} // Fixed size
+                  />
                 </div>
-            </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Gradient Bottom:</span>
+                  <input
+                    type="color"
+                    value={backgroundColor2}
+                    onChange={(e) => setBackgroundColor2(e.target.value)}
+                    className="rounded cursor-pointer"
+                    style={{ width: '40px', height: '40px' }} // Fixed size
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Font Color:</span>
+                  <input
+                    type="color"
+                    value={textColor}
+                    onChange={(e) => setTextColor(e.target.value)}
+                    className="rounded cursor-pointer"
+                    style={{ width: '40px', height: '40px' }} // Fixed size
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Button Color:</span>
+                  <input
+                    type="color"
+                    value={buttonColor}
+                    onChange={(e) => setButtonColor(e.target.value)}
+                    className="rounded cursor-pointer"
+                    style={{ width: '40px', height: '40px' }} // Fixed size
+                  />
+                </div>
+                <Button
+                  onClick={resetColors}
+                  className="whitespace-nowrap mt-4 w-full bg-gray-200 hover:bg-gray-300 text-gray-800"
+                >
+                  Reset Colors
+                </Button>
+              </div>
+            </Card>
           )}
         </div>
   
@@ -834,7 +751,7 @@ const DailyPlanner = () => {
                         {/* Scheduled Task */}
                         {scheduledTask && (
                             <div
-                                className="absolute left-0 w-full rounded px-2 cursor-pointer"
+                                className="absolute left-0 w-full rounded px-2 pointer-events-auto"
                                 style={{
                                     backgroundColor: buttonColor,
                                     height: (() => {
@@ -844,10 +761,8 @@ const DailyPlanner = () => {
                                         );
                                         return diff !== null ? `${diff * 48}px` : '0px';
                                     })(),
-                                    top: `${(getHourFromTime(scheduledTask.startTime || '') || 0) * 48}px`,
-                                    opacity: scheduledTask.completed ? 0.5 : 1
+                                    top: `${(getHourFromTime(scheduledTask.startTime) || 0) * 48}px`
                                 }}
-                                onClick={toggleScheduledTaskCompletion}
                             >
                                 <span className={scheduledTask.completed ? 'line-through' : ''}>
                                     {scheduledTask.text}

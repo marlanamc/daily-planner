@@ -37,17 +37,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Daily Planner" />
+        <link rel="apple-touch-startup-image" href="/splash.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5" />
-        <meta name="theme-color" content="#ffffff" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="full-screen" content="yes" />
-        <meta name="browsermode" content="application" />
       </head>
-      <body className="overscroll-none">{children}</body>
+      <body className="min-h-[100dvh]">{children}</body>
     </html>
   )
 }
