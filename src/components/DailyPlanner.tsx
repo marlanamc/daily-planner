@@ -412,7 +412,7 @@ const DailyPlanner = () => {
         </div>
   
         {/* ===== SETTINGS PANEL ===== */}
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 right-4 z-50">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -423,7 +423,7 @@ const DailyPlanner = () => {
           </Button>
           
           {showSettings && (
-            <Card className="absolute right-0 mt-2 p-4 bg-white/90 shadow-lg w-64">
+            <Card className="absolute right-0 mt-2 p-4 bg-white/90 shadow-lg w-64 z-50">
               <div className="space-y-4">
                 {/* Color Picker Items */}
                   <div className="flex items-center justify-between">
