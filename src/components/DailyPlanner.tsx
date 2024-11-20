@@ -52,6 +52,7 @@ const DailyPlanner = () => {
   const [textColor, setTextColor] = useState('#111827');
   const [buttonColor, setButtonColor] = useState('#FBA2BE');
   const [showSettings, setShowSettings] = useState(false);
+  const [fontSize, setFontSize] = useState('16');
 
   // Navigation and Schedule state
   const [activePage, setActivePage] = useState('planner');
@@ -150,7 +151,6 @@ const DailyPlanner = () => {
         setCategories(updatedCategories);
     }
 };
-
 
 
   const updateTodoDueDate = (categoryIndex: number, todoIndex: number, date: string) => {
@@ -281,47 +281,51 @@ const DailyPlanner = () => {
 
   useEffect(() => {
     try {
-        const savedData = localStorage.getItem('dailyPlanner');
-        if (savedData) {
-            const parsed = JSON.parse(savedData);
-            if (parsed && typeof parsed === 'object') {
-                const { categories, mainTask, colors } = parsed;
-                if (Array.isArray(categories)) {
-                    setCategories(categories);
-                }
-                if (typeof mainTask === 'string') {
-                    setDisplayedTask(mainTask);
-                }
-                if (colors && typeof colors === 'object') {
-                    setBackgroundColor1(colors.bg1 || '#fce7f3');
-                    setBackgroundColor2(colors.bg2 || '#dbeafe');
-                    setTextColor(colors.text || '#111827');
-                    setButtonColor(colors.button || '#FBA2BE');
-                }
-            }
+      const savedData = localStorage.getItem('dailyPlanner');
+      if (savedData) {
+        const parsed = JSON.parse(savedData);
+        if (parsed && typeof parsed === 'object') {
+          const { categories, mainTask, colors, fontSize: savedFontSize } = parsed;
+          if (Array.isArray(categories)) {
+            setCategories(categories);
+          }
+          if (typeof mainTask === 'string') {
+            setDisplayedTask(mainTask);
+          }
+          if (colors && typeof colors === 'object') {
+            setBackgroundColor1(colors.bg1 || '#fce7f3');
+            setBackgroundColor2(colors.bg2 || '#dbeafe');
+            setTextColor(colors.text || '#111827');
+            setButtonColor(colors.button || '#FBA2BE');
+          }
+          if (savedFontSize) {
+            setFontSize(savedFontSize);
+          }
         }
+      }
     } catch (error) {
-        console.error('Error loading saved data:', error);
-        // Could also set some default state here
+      console.error('Error loading saved data:', error);
     }
   }, []);
-  
+
+  // Update the useEffect for saving data
   useEffect(() => {
     localStorage.setItem(
-        'dailyPlanner',
-        JSON.stringify({
-            categories,
-            mainTask: displayedTask,
-            scheduledTask, // Add this to persist the scheduled task
-            colors: {
-                bg1: backgroundColor1,
-                bg2: backgroundColor2,
-                text: textColor,
-                button: buttonColor,
-            },
-        })
+      'dailyPlanner',
+      JSON.stringify({
+        categories,
+        mainTask: displayedTask,
+        scheduledTask,
+        colors: {
+          bg1: backgroundColor1,
+          bg2: backgroundColor2,
+          text: textColor,
+          button: buttonColor,
+        },
+        fontSize,
+      })
     );
-  }, [categories, displayedTask, scheduledTask, backgroundColor1, backgroundColor2, textColor, buttonColor]);
+  }, [categories, displayedTask, scheduledTask, backgroundColor1, backgroundColor2, textColor, buttonColor, fontSize]);
 
   // Add this helper function near your other utility functions
   const isTimeInPast = (hour: number): boolean => {
@@ -365,7 +369,13 @@ const DailyPlanner = () => {
 
   return (
     // Main Container
-    <div className="min-h-screen" style={{ background: `linear-gradient(to bottom right, ${backgroundColor1}, ${backgroundColor2})` }}>
+    <div 
+      className="min-h-screen" 
+      style={{ 
+        background: `linear-gradient(to bottom right, ${backgroundColor1}, ${backgroundColor2})`,
+        fontSize: `${fontSize}px`
+      }}
+    >
       <div className="max-w-7xl mx-auto px-4 py-6">
         
         {/* ===== DATE HEADER SECTION ===== */}
@@ -424,7 +434,6 @@ const DailyPlanner = () => {
           
           {showSettings && (
             <Card className="absolute right-0 mt-2 p-4 bg-white/90 shadow-lg w-64 z-50">
-              <div className="space-y-4">
                 {/* Color Picker Items */}
                   <div className="flex items-center justify-between">
                   <span className="text-sm">Gradient Top:</span>
@@ -465,6 +474,22 @@ const DailyPlanner = () => {
                     className="rounded cursor-pointer"
                     style={{ width: '40px', height: '40px' }} // Fixed size
                   />
+                </div>
+                <div className="space-y-4">
+                {/* Add Font Size control */}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Font Size:</span>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={fontSize}
+                      onChange={(e) => setFontSize(e.target.value)}
+                      className="w-16 text-center"
+                      min="12"
+                      max="24"
+                    />
+                    <span className="text-xs">px</span>
+                  </div>
                 </div>
                 <Button
                   onClick={resetColors}
