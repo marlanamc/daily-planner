@@ -434,7 +434,7 @@ const DailyPlanner = () => {
             >
                 <div 
                     className="bg-white rounded-lg p-6 w-full max-w-md space-y-4"
-                    onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+                    onClick={(e) => e.stopPropagation()}
                 >
                     <h3 className="text-lg font-semibold mb-4">Settings</h3>
                     
@@ -492,13 +492,27 @@ const DailyPlanner = () => {
                         </div>
                     </div>
 
-                    <div className="flex justify-end mt-6">
+                    <div className="flex items-center justify-between gap-4 mt-6">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setBackgroundColor1('#fce7f3');
+                                setBackgroundColor2('#dbeafe');
+                                setTextColor('#111827');
+                                setButtonColor('#FBA2BE');
+                            }}
+                            className="flex-1"
+                        >
+                            Reset Colors
+                        </Button>
+
                         <Button
                             onClick={() => setShowSettings(false)}
                             style={{
                                 backgroundColor: buttonColor,
                                 color: 'white'
                             }}
+                            className="flex-1"
                         >
                             Close
                         </Button>
