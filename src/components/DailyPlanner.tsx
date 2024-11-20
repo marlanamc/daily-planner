@@ -368,6 +368,44 @@ const DailyPlanner = () => {
     document.body.classList.toggle('settings-open');
   };
 
+  // First, add useEffect to handle localStorage for scheduledTask
+  useEffect(() => {
+    // Load scheduled task from localStorage on component mount
+    const savedScheduledTask = localStorage.getItem('scheduledTask');
+    if (savedScheduledTask) {
+        setScheduledTask(JSON.parse(savedScheduledTask));
+    }
+  }, []);
+
+  // Update the useEffect that handles mainTask changes
+  useEffect(() => {
+    if (mainTask) {
+        setDisplayedTask(mainTask);
+        // Update scheduledTask when mainTask changes
+        const newScheduledTask = {
+            text: mainTask,
+            startTime: '09:00', // Default start time
+            endTime: '10:00',   // Default end time
+            completed: false
+        };
+        setScheduledTask(newScheduledTask);
+        localStorage.setItem('scheduledTask', JSON.stringify(newScheduledTask));
+        setMainTask('');
+    }
+  }, [mainTask]);
+
+  // Add a function to handle task completion
+  const toggleScheduledTaskCompletion = () => {
+    if (scheduledTask) {
+        const updatedTask = {
+            ...scheduledTask,
+            completed: !scheduledTask.completed
+        };
+        setScheduledTask(updatedTask);
+        localStorage.setItem('scheduledTask', JSON.stringify(updatedTask));
+    }
+  };
+
   return (
     // Main Container
     <div className="min-h-screen" style={{ background: `linear-gradient(to bottom right, ${backgroundColor1}, ${backgroundColor2})` }}>
@@ -796,7 +834,7 @@ const DailyPlanner = () => {
                         {/* Scheduled Task */}
                         {scheduledTask && (
                             <div
-                                className="absolute left-0 w-full rounded px-2 pointer-events-auto"
+                                className="absolute left-0 w-full rounded px-2 cursor-pointer"
                                 style={{
                                     backgroundColor: buttonColor,
                                     height: (() => {
@@ -806,8 +844,10 @@ const DailyPlanner = () => {
                                         );
                                         return diff !== null ? `${diff * 48}px` : '0px';
                                     })(),
-                                    top: `${(getHourFromTime(scheduledTask.startTime) || 0) * 48}px`
+                                    top: `${(getHourFromTime(scheduledTask.startTime || '') || 0) * 48}px`,
+                                    opacity: scheduledTask.completed ? 0.5 : 1
                                 }}
+                                onClick={toggleScheduledTaskCompletion}
                             >
                                 <span className={scheduledTask.completed ? 'line-through' : ''}>
                                     {scheduledTask.text}
