@@ -89,8 +89,9 @@ const DailyPlanner = () => {
 
   const getHourFromTime = (time: string | null) => {
     if (!time) return null;
-    const [hour] = time.split(':').map(Number);
-    return hour - 6; // Subtract 6 to align with our display that starts at 6 AM
+    const [hours, minutes] = time.split(':').map(Number);
+    // Calculate the exact position including minutes
+    return (hours - 6) + (minutes / 60);
   };
 
 
@@ -351,6 +352,15 @@ const DailyPlanner = () => {
     const updatedCategories = [...categories];
     updatedCategories[categoryIndex].todos.splice(todoIndex, 1);
     setCategories(updatedCategories);
+  };
+
+  // Add this helper function
+  const formatTime12Hour = (time: string | null) => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = hours % 12 || 12;
+    return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
 
   return (
@@ -638,8 +648,8 @@ const DailyPlanner = () => {
                                     </div>
                                     {todo.startTime && (
                                         <div className="text-xs text-gray-500">
-                                            {todo.startTime}
-                                            {todo.endTime && ` - ${todo.endTime}`}
+                                            {formatTime12Hour(todo.startTime)}
+                                            {todo.endTime && ` - ${formatTime12Hour(todo.endTime)}`}
                                         </div>
                                     )}
                                 </div>
