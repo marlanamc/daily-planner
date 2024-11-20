@@ -328,6 +328,24 @@ const DailyPlanner = () => {
     return hour < currentHour;
   };
 
+  // Add this helper function near your other utility functions
+  const sortTodosByTime = (todos: Todo[]) => {
+    return [...todos].sort((a, b) => {
+        // Handle cases where either todo doesn't have a start time
+        if (!a.startTime) return 1;  // Push items without times to the end
+        if (!b.startTime) return -1; // Push items without times to the end
+        
+        // Convert time strings to comparable numbers
+        const [aHour, aMin] = a.startTime.split(':').map(Number);
+        const [bHour, bMin] = b.startTime.split(':').map(Number);
+        
+        // Compare hours first
+        if (aHour !== bHour) return aHour - bHour;
+        // If hours are equal, compare minutes
+        return aMin - bMin;
+    });
+  };
+
   return (
     // Main Container
     <div className="min-h-screen" style={{ background: `linear-gradient(to bottom right, ${backgroundColor1}, ${backgroundColor2})` }}>
@@ -601,41 +619,30 @@ const DailyPlanner = () => {
 
                     {/* Existing todo items display */}
                     <div className="space-y-2">
-                        {category.todos.map((todo) => (
-                            <div key={todo.id}
-                                className="flex items-center gap-2 font-normal text-gray-900 group relative hover:bg-white/50 rounded-lg p-2 transition-all" 
-                                style={{ fontFamily: 'system-ui', color: textColor }}
-                            >
+                        {sortTodosByTime(category.todos).map((todo, todoIndex) => (
+                            <div key={todo.id} className="flex items-center gap-2 mb-2">
                                 <Checkbox
                                     checked={todo.completed}
-                                    onCheckedChange={() => toggleTodo(categoryIndex, category.todos.indexOf(todo))}
+                                    onCheckedChange={() => toggleTodo(categoryIndex, todoIndex)}
                                 />
-                                <div className="flex flex-col">
-                                    <span className={todo.completed ? 'line-through' : ''}>
+                                <div className="flex flex-col flex-grow">
+                                    <div className={`${todo.completed ? 'line-through' : ''}`}>
                                         {todo.text}
-                                    </span>
-                                    {todo.dueDate && (
-                                        <span className="text-sm text-gray-500">
-                                            Due: {todo.dueDate}
-                                        </span>
+                                    </div>
+                                    {todo.startTime && (
+                                        <div className="text-xs text-gray-500">
+                                            {todo.startTime}
+                                            {todo.endTime && ` - ${todo.endTime}`}
+                                        </div>
                                     )}
                                 </div>
-                                <div className="opacity-0 group-hover:opacity-100 absolute right-2 flex gap-2">
-                                    <input
-                                        type="date"
-                                        value={todo.dueDate || ''}
-                                        onChange={(e) => updateTodoDueDate(categoryIndex, category.todos.indexOf(todo), e.target.value)}
-                                        className="bg-transparent border-none text-sm text-gray-500 hover:text-gray-700"
-                                    />
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-gray-500 hover:text-red-500"
-                                        onClick={() => deleteTodo(categoryIndex, category.todos.indexOf(todo))}
-                                    >
-                                        <CloseIcon size={16} />
-                                    </Button>
-                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTodo(categoryIndex, todoIndex)}
+                                >
+                                    <CloseIcon className="h-4 w-4" />
+                                </Button>
                             </div>
                         ))}
                     </div>
