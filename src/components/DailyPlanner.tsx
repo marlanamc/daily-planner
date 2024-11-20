@@ -346,6 +346,13 @@ const DailyPlanner = () => {
     });
   };
 
+  // Add this function inside your DailyPlanner component
+  const handleDeleteTodo = (categoryIndex: number, todoIndex: number) => {
+    const updatedCategories = [...categories];
+    updatedCategories[categoryIndex].todos.splice(todoIndex, 1);
+    setCategories(updatedCategories);
+  };
+
   return (
     // Main Container
     <div className="min-h-screen" style={{ background: `linear-gradient(to bottom right, ${backgroundColor1}, ${backgroundColor2})` }}>
