@@ -733,7 +733,7 @@ const DailyPlanner = () => {
           {/* === SCHEDULE TAB === */}
           <TabsContent value="schedule">
             <div className="schedule-view max-w-md mx-auto bg-white/70 p-4">
-                {/* Early Hours Collapsed Section */}
+                {/* Early Hours (12 AM - 6 AM) */}
                 <div className="mb-2">
                     <details className="cursor-pointer">
                         <summary className="text-gray-500 p-2 hover:bg-white/50 rounded">
@@ -746,7 +746,7 @@ const DailyPlanner = () => {
                                         {hour === 0 ? '12' : hour} AM
                                     </span>
                                     <div className="flex-grow relative">
-                                        {/* Task rendering for early hours */}
+                                        {/* Early hours tasks would render here */}
                                     </div>
                                 </div>
                             </div>
@@ -754,33 +754,50 @@ const DailyPlanner = () => {
                     </details>
                 </div>
 
-                {/* Regular Hours */}
+                {/* Past Hours of Current Day */}
+                <div className="mb-2">
+                    <details className="cursor-pointer">
+                        <summary className="text-gray-500 p-2 hover:bg-white/50 rounded">
+                            Past Hours Today
+                        </summary>
+                        {[...Array(18).keys()]
+                            .map(hour => hour + 6)
+                            .filter(hour => isTimeInPast(hour))
+                            .map((hour) => (
+                                <div key={hour} className="relative">
+                                    <div className="hour-slot flex items-start h-12 border-t border-gray-200 bg-gray-100/50">
+                                        <span className="text-gray-400 w-12">
+                                            {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
+                                        </span>
+                                        <div className="flex-grow relative">
+                                            {/* Past hours tasks would render here */}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                    </details>
+                </div>
+
+                {/* Current and Future Hours */}
                 <div className="relative">
-                    {[...Array(18).keys()].map((hour) => {
-                        const displayHour = hour + 6;
-                        const isPast = isTimeInPast(displayHour);
-                        
-                        return (
-                            <div key={displayHour}>
-                                <div 
-                                    className={`hour-slot flex items-start h-12 border-t border-gray-200 transition-colors ${
-                                        isPast ? 'bg-gray-100/50' : ''
-                                    }`}
-                                >
-                                    <span className={`w-12 ${isPast ? 'text-gray-400' : 'text-gray-500'}`}>
-                                        {displayHour % 12 || 12} {displayHour < 12 ? 'AM' : 'PM'}
+                    {[...Array(18).keys()]
+                        .map(hour => hour + 6)
+                        .filter(hour => !isTimeInPast(hour))
+                        .map((hour) => (
+                            <div key={hour}>
+                                <div className="hour-slot flex items-start h-12 border-t border-gray-200">
+                                    <span className="text-gray-500 w-12">
+                                        {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
                                     </span>
                                     <div className="flex-grow">
-                                        {/* Time slot content */}
+                                        {/* Current and future hours tasks would render here */}
                                     </div>
                                 </div>
                             </div>
-                        );
-                    })}
+                        ))}
 
-                    {/* Tasks rendered outside the hour slots */}
+                    {/* Tasks Overlay */}
                     <div className="absolute top-0 left-12 right-0 h-full pointer-events-none">
-                        {/* Scheduled Task */}
                         {scheduledTask && (
                             <div
                                 className="absolute left-0 w-full rounded px-2 pointer-events-auto"
