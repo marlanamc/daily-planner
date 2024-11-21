@@ -734,83 +734,68 @@ const DailyPlanner = () => {
           <TabsContent value="schedule">
             <div className="schedule-view max-w-md mx-auto bg-white/70 p-4">
                 {/* Early Hours (12 AM - 6 AM) */}
-                <div className="mb-2">
-                    <details className="cursor-pointer">
-                        <summary className="text-gray-500 p-2 hover:bg-white/50 rounded">
-                            12 AM - 6 AM
-                        </summary>
+                <details className="cursor-pointer mb-2">
+                    <summary className="text-gray-500 p-2 hover:bg-white/50 rounded">
+                        12 AM - 6 AM
+                    </summary>
+                    <div className="relative">
                         {[...Array(6).keys()].map((hour) => (
-                            <div key={hour} className="relative">
-                                <div className="hour-slot flex items-start h-12 border-t border-gray-200">
-                                    <span className="text-gray-400 w-12">
-                                        {hour === 0 ? '12' : hour} AM
-                                    </span>
-                                    <div className="flex-grow relative">
-                                        {/* Early hours tasks would render here */}
-                                    </div>
-                                </div>
+                            <div key={hour} className="hour-slot flex items-start h-12 border-t border-gray-200">
+                                <span className="text-gray-400 w-12">
+                                    {hour === 0 ? '12' : hour} AM
+                                </span>
+                                <div className="flex-grow" />
                             </div>
                         ))}
-                    </details>
-                </div>
+                    </div>
+                </details>
 
                 {/* Past Hours of Current Day */}
-                <div className="mb-2">
-                    <details className="cursor-pointer">
-                        <summary className="text-gray-500 p-2 hover:bg-white/50 rounded">
-                            Past Hours Today
-                        </summary>
+                <details className="cursor-pointer mb-2">
+                    <summary className="text-gray-500 p-2 hover:bg-white/50 rounded">
+                        Past Hours Today
+                    </summary>
+                    <div className="relative">
                         {[...Array(18).keys()]
                             .map(hour => hour + 6)
                             .filter(hour => isTimeInPast(hour))
                             .map((hour) => (
-                                <div key={hour} className="relative">
-                                    <div className="hour-slot flex items-start h-12 border-t border-gray-200 bg-gray-100/50">
-                                        <span className="text-gray-400 w-12">
-                                            {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
-                                        </span>
-                                        <div className="flex-grow relative">
-                                            {/* Past hours tasks would render here */}
-                                        </div>
-                                    </div>
+                                <div key={hour} className="hour-slot flex items-start h-12 border-t border-gray-200 bg-gray-100/50">
+                                    <span className="text-gray-400 w-12">
+                                        {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
+                                    </span>
+                                    <div className="flex-grow" />
                                 </div>
                             ))}
-                    </details>
-                </div>
+                    </div>
+                </details>
 
-                {/* Current and Future Hours */}
+                {/* Current and Future Hours with Tasks Overlay */}
                 <div className="relative">
+                    {/* Hour slots */}
                     {[...Array(18).keys()]
                         .map(hour => hour + 6)
                         .filter(hour => !isTimeInPast(hour))
                         .map((hour) => (
-                            <div key={hour}>
-                                <div className="hour-slot flex items-start h-12 border-t border-gray-200">
-                                    <span className="text-gray-500 w-12">
-                                        {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
-                                    </span>
-                                    <div className="flex-grow">
-                                        {/* Current and future hours tasks would render here */}
-                                    </div>
-                                </div>
+                            <div key={hour} className="hour-slot flex items-start h-12 border-t border-gray-200">
+                                <span className="text-gray-500 w-12">
+                                    {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
+                                </span>
+                                <div className="flex-grow" />
                             </div>
                         ))}
 
                     {/* Tasks Overlay */}
-                    <div className="absolute top-0 left-12 right-0 h-full pointer-events-none">
-                        {scheduledTask && (
+                    <div className="absolute top-0 left-12 right-0 h-full">
+                        {/* Main Task */}
+                        {scheduledTask && scheduledTask.startTime && (
                             <div
-                                className="absolute left-0 w-full rounded px-2 pointer-events-auto"
+                                className="absolute left-0 w-full rounded px-2"
                                 style={{
                                     backgroundColor: buttonColor,
-                                    height: (() => {
-                                        const diff = getTimeDifferenceInHours(
-                                            scheduledTask.startTime,
-                                            scheduledTask.endTime
-                                        );
-                                        return diff !== null ? `${diff * 48}px` : '0px';
-                                    })(),
-                                    top: `${(getHourFromTime(scheduledTask.startTime) || 0) * 48}px`
+                                    height: getTaskHeight(scheduledTask),
+                                    top: `${((getHourFromTime(scheduledTask.startTime) || 0) - 6) * 48}px`,
+                                    opacity: scheduledTask.completed ? 0.5 : 1
                                 }}
                             >
                                 <span className={scheduledTask.completed ? 'line-through' : ''}>
@@ -819,21 +804,22 @@ const DailyPlanner = () => {
                             </div>
                         )}
 
-                        {/* Category Todos */}
+                        {/* Category Tasks */}
                         {categories.flatMap((category) =>
                             category.todos
-                                .filter((todo) => todo.startTime !== null && todo.startTime !== undefined)
+                                .filter((todo) => todo.startTime && todo.endTime)
                                 .map((todo) => (
                                     <div
                                         key={todo.id}
-                                        className="absolute left-0 w-full rounded px-2 pointer-events-auto"
+                                        className="absolute left-0 w-full rounded px-2"
                                         style={{
                                             backgroundColor: category.color + '80',
                                             height: (() => {
-                                                const diff = getTimeDifferenceInHours(todo.startTime || null, todo.endTime || null);
+                                                const diff = getTimeDifferenceInHours(todo.startTime, todo.endTime);
                                                 return diff !== null ? `${diff * 48}px` : '0px';
                                             })(),
-                                            top: `${(getHourFromTime(todo.startTime || '') || 0) * 48}px`
+                                            top: `${((getHourFromTime(todo.startTime) || 0) - 6) * 48}px`,
+                                            opacity: todo.completed ? 0.5 : 1
                                         }}
                                     >
                                         <span className={todo.completed ? 'line-through' : ''}>
