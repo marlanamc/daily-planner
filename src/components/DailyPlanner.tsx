@@ -359,12 +359,11 @@ const DailyPlanner = () => {
   };
 
   // Add this helper function
-  const formatTime12Hour = (time: string | null) => {
-    if (!time) return '';
+  const formatTime12Hour = (time: string): string => {
     const [hours, minutes] = time.split(':').map(Number);
     const period = hours >= 12 ? 'PM' : 'AM';
-    const hour12 = hours % 12 || 12;
-    return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`;
+    const displayHours = hours % 12 || 12;
+    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
 
   return (
@@ -544,15 +543,23 @@ const DailyPlanner = () => {
             ) : (
               <div className="max-w-md mx-auto relative border border-black rounded p-4 bg-white/70 mb-8">
                 <Card className="border-none">
-                  <CardContent className="p-4 flex items-center justify-center text-center relative">
+                  <CardContent className="p-4 flex flex-col items-center justify-center text-center relative">
                     <div className="text-2xl font-normal text-gray-900" style={{ fontFamily: 'system-ui', color: textColor }}>
                       🎯 {displayedTask}
                     </div>
+                    {scheduledTask && scheduledTask.startTime && scheduledTask.endTime && (
+                        <div className="text-sm text-gray-600 mt-2">
+                            {formatTime12Hour(scheduledTask.startTime)} - {formatTime12Hour(scheduledTask.endTime)}
+                        </div>
+                    )}
                     <button 
-                      onClick={() => setDisplayedTask('')} 
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black"
+                        onClick={() => {
+                            setDisplayedTask('');
+                            setScheduledTask(null);
+                        }} 
+                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black"
                     >
-                      <CloseIcon size={20} />
+                        <CloseIcon size={20} />
                     </button>
                   </CardContent>
                 </Card>
