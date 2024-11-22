@@ -184,17 +184,24 @@ const DailyPlanner = () => {
   };
 
   const getTaskHeight = (
-    task: ScheduledTask | { startTime: string | null; endTime: string | null } | null
+    startTime: string | null | { startTime: string | null; endTime: string | null },
+    endTime?: string | null
   ): string => {
-    if (!task || !task.startTime || !task.endTime) {
-      return '0px';
+    // If first parameter is an object
+    if (typeof startTime === 'object' && startTime !== null) {
+      if (!startTime.startTime || !startTime.endTime) return '0px';
+      const start = getHourFromTime(startTime.startTime);
+      const end = getHourFromTime(startTime.endTime);
+      if (start === null || end === null) return '0px';
+      return `${(end - start) * 48}px`;
     }
-
-    const start = getHourFromTime(task.startTime);
-    const end = getHourFromTime(task.endTime);
     
+    // If parameters are separate
+    if (!startTime || !endTime) return '0px';
+    const start = getHourFromTime(startTime);
+    const end = getHourFromTime(endTime);
     if (start === null || end === null) return '0px';
-    return `${(end - start) * 48}px`; // 48px per hour
+    return `${(end - start) * 48}px`;
   };
 
   const getTimeDifferenceInHours = (startTime: string | null, endTime: string | null) => {
@@ -1146,13 +1153,13 @@ const DailyPlanner = () => {
                                 className="absolute left-0 w-full rounded px-2"
                                 style={{
                                     backgroundColor: buttonColor,
-                                    height: getTaskHeight(scheduledTask.startTime, scheduledTask.endTime),
-                                    top: `${((getHourFromTime(scheduledTask.startTime) || 0) - 6) * 48}px`,
-                                    opacity: scheduledTask.completed ? 0.5 : 1
+                                    height: getTaskHeight(scheduledTask?.startTime, scheduledTask?.endTime),
+                                    top: `${((getHourFromTime(scheduledTask?.startTime) || 0) - 6) * 48}px`,
+                                    opacity: scheduledTask?.completed ? 0.5 : 1
                                 }}
                             >
-                                <span className={scheduledTask.completed ? 'line-through' : ''}>
-                                    {scheduledTask.text}
+                                <span className={scheduledTask?.completed ? 'line-through' : ''}>
+                                    {scheduledTask?.text}
                                 </span>
                             </div>
                         )}
