@@ -232,32 +232,40 @@ const DailyPlanner = () => {
 
 
   const handleAddTodo = async (categoryIndex: number) => {
-    if (!user) return;
-    
     const updatedCategories = [...categories];
     const category = updatedCategories[categoryIndex];
 
     if (category.newTodo.trim()) {
       const todo = {
         id: crypto.randomUUID(),
-        user_id: user.id,
-        category_id: category.id,
         text: category.newTodo,
         completed: false,
         start_time: category.newTodoTimes?.start || null,
         end_time: category.newTodoTimes?.end || null
       };
 
-      const { error } = await supabase
-        .from('todos')
-        .insert([todo]);
+      // Only save to Supabase if user is logged in
+      if (user) {
+        const todoWithUser = {
+          ...todo,
+          user_id: user.id,
+          category_id: category.id
+        };
 
-      if (!error) {
-        category.todos.push(todo);
-        category.newTodo = '';
-        category.newTodoTimes = null;
-        setCategories(updatedCategories);
+        const { error } = await supabase
+          .from('todos')
+          .insert([todoWithUser]);
+
+        if (error) {
+          console.error('Error saving todo:', error);
+          return;
+        }
       }
+
+      category.todos.push(todo);
+      category.newTodo = '';
+      category.newTodoTimes = null;
+      setCategories(updatedCategories);
     }
   };
 
@@ -477,20 +485,20 @@ const DailyPlanner = () => {
 
   const handleSignOut = async () => {
     try {
-        // Try multiple sign-out approaches
-        await Promise.all([
-            supabase.auth.signOut(),
-            // Clear storage
-            localStorage.clear(),
-            sessionStorage.clear()
-        ]);
-        
-        // Force reload the page
-        window.location.href = '/';
+      await supabase.auth.signOut();
+      // Reset to default categories instead of clearing
+      setCategories([
+        { id: crypto.randomUUID(), name: 'Wellness ✨', todos: [], color: '#FBA2BE', newTodo: '', newTodoTimes: null },
+        { id: crypto.randomUUID(), name: 'Apartment 🏠', todos: [], color: '#FFD5DD', newTodo: '', newTodoTimes: null },
+        { id: crypto.randomUUID(), name: 'Job Search 💼', todos: [], color: '#C8E8E5', newTodo: '', newTodoTimes: null },
+      ]);
+      setEvents([]);
+      setDisplayedTask('');
+      setScheduledTask(null);
+      window.location.href = '/';
     } catch (error) {
-        console.error('Sign out error:', error);
-        // Force reload anyway
-        window.location.href = '/';
+      console.error('Sign out error:', error);
+      window.location.href = '/';
     }
   };
 
@@ -524,82 +532,68 @@ const DailyPlanner = () => {
   // Add these loading functions
   useEffect(() => {
     const loadUserData = async () => {
-      if (!user) return;
+      if (!user) {
+        console.log('No user, using default categories');
+        return;
+      }
 
-      // First check if user has any categories
+      console.log('Loading data for user:', user.id);
+
+      // Check for existing categories
       const { data: existingCategories } = await supabase
         .from('categories')
         .select('*')
         .eq('user_id', user.id);
 
+      console.log('Existing categories from DB:', existingCategories);
+
       if (!existingCategories || existingCategories.length === 0) {
-        // If no categories exist, create default ones
-        const defaultCategories = [
-          { name: 'Wellness ✨', color: '#FBA2BE', user_id: user.id },
-          { name: 'Apartment 🏠', color: '#FFD5DD', user_id: user.id },
-          { name: 'Job Search 💼', color: '#C8E8E5', user_id: user.id },
-        ];
+        console.log('No existing categories, creating defaults');
+        // First time user - insert default categories into database
+        const categoriesToInsert = defaultCategories.map(cat => ({
+          name: cat.name,
+          color: cat.color,
+          user_id: user.id
+        }));
 
         const { data: newCategories, error } = await supabase
           .from('categories')
-          .insert(defaultCategories)
+          .insert(categoriesToInsert)
           .select();
 
-        if (!error && newCategories) {
-          setCategories(newCategories.map(cat => ({
-            ...cat,
-            todos: [],
-            newTodo: '',
-            newTodoTimes: null
-          })));
+        if (error) {
+          console.error('Error creating categories:', error);
+        } else {
+          console.log('Created new categories:', newCategories);
         }
       } else {
-        // Use existing categories
+        console.log('Loading existing categories with todos');
         const categoriesWithTodos = existingCategories.map(cat => ({
           ...cat,
           todos: [],
           newTodo: '',
           newTodoTimes: null
         }));
-        setCategories(categoriesWithTodos);
 
-        // Load todos for each category
+        // Load todos
         const { data: todosData } = await supabase
           .from('todos')
           .select('*')
           .eq('user_id', user.id);
 
         if (todosData) {
-          const updatedCategories = [...categoriesWithTodos];
           todosData.forEach(todo => {
-            const categoryIndex = updatedCategories.findIndex(
+            const categoryIndex = categoriesWithTodos.findIndex(
               cat => cat.id === todo.category_id
             );
             if (categoryIndex !== -1) {
-              updatedCategories[categoryIndex].todos.push(todo);
+              categoriesWithTodos[categoryIndex].todos.push(todo);
             }
           });
-          setCategories(updatedCategories);
         }
-      }
-
-      // Load main task
-      const { data: mainTaskData } = await supabase
-        .from('main_tasks')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (mainTaskData) {
-        setDisplayedTask(mainTaskData.text);
-        setScheduledTask({
-          text: mainTaskData.text,
-          startTime: mainTaskData.start_time,
-          endTime: mainTaskData.end_time,
-          completed: mainTaskData.completed
-        });
+        
+        // Replace default categories with user's categories
+        setCategories(categoriesWithTodos);
       }
     };
 
