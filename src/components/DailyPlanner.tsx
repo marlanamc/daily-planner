@@ -439,21 +439,21 @@ const DailyPlanner = () => {
     return hour < currentHour;
   };
 
-  // Add this helper function near your other utility functions
+  // Update the sortTodosByTime function
   const sortTodosByTime = (todos: Todo[]) => {
     return [...todos].sort((a, b) => {
-        // Handle cases where either todo doesn't have a start time
-        if (!a.startTime) return 1;  // Push items without times to the end
-        if (!b.startTime) return -1; // Push items without times to the end
-        
-        // Convert time strings to comparable numbers
-        const [aHour, aMin] = a.startTime.split(':').map(Number);
-        const [bHour, bMin] = b.startTime.split(':').map(Number);
-        
-        // Compare hours first
-        if (aHour !== bHour) return aHour - bHour;
-        // If hours are equal, compare minutes
-        return aMin - bMin;
+      // Handle cases where either todo doesn't have a start time
+      if (!a.start_time) return 1;  // Push items without times to the end
+      if (!b.start_time) return -1; // Push items without times to the end
+      
+      // Convert time strings to comparable numbers
+      const [aHour, aMin] = a.start_time.split(':').map(Number);
+      const [bHour, bMin] = b.start_time.split(':').map(Number);
+      
+      // Compare hours first
+      if (aHour !== bHour) return aHour - bHour;
+      // If hours are equal, compare minutes
+      return aMin - bMin;
     });
   };
 
@@ -926,10 +926,10 @@ const DailyPlanner = () => {
                                     <div className={`${todo.completed ? 'line-through' : ''}`}>
                                         {todo.text}
                                     </div>
-                                    {todo.startTime && (
+                                    {todo.start_time && (
                                         <div className="text-xs text-gray-500">
-                                            {formatTime12Hour(todo.startTime)}
-                                            {todo.endTime && ` - ${formatTime12Hour(todo.endTime)}`}
+                                            {formatTime12Hour(todo.start_time)}
+                                            {todo.end_time && ` - ${formatTime12Hour(todo.end_time)}`}
                                         </div>
                                     )}
                                 </div>
