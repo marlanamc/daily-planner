@@ -11,6 +11,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 import AuthComponent from './Auth';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 interface Todo {
   id: string;
@@ -35,6 +42,14 @@ interface ScheduledTask {
   endTime: string | null;
   hour?: number; // Optional if it’s not always set
   completed: boolean;
+}
+
+interface CalendarEvent {
+  id: string;
+  title: string;
+  date: string; // YYYY-MM-DD format
+  time?: string;
+  description?: string;
 }
 
 const DailyPlanner = () => {
@@ -74,6 +89,37 @@ const DailyPlanner = () => {
   // Add this near your other state declarations at the top
   const [showAuth, setShowAuth] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+
+  // Add new state for events
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [newEvent, setNewEvent] = useState<Partial<CalendarEvent>>({});
+
+  // Add this helper function
+  const formatDateToYYYYMMDD = (date: Date): string => {
+    return date.toISOString().split('T')[0];
+  };
+
+  // Add this function to handle event creation
+  const handleAddEvent = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newEvent.title && newEvent.date) {
+      const event: CalendarEvent = {
+        id: crypto.randomUUID(),
+        title: newEvent.title,
+        date: newEvent.date,
+        time: newEvent.time,
+        description: newEvent.description
+      };
+      setEvents([...events, event]);
+      setNewEvent({}); // Reset form
+    }
+  };
+
+  // Add this function to get events for a specific date
+  const getEventsForDate = (date: Date): CalendarEvent[] => {
+    const dateStr = formatDateToYYYYMMDD(date);
+    return events.filter(event => event.date === dateStr);
+  };
 
   // Add this useEffect for auth state
   useEffect(() => {
@@ -333,6 +379,9 @@ const DailyPlanner = () => {
           if (savedFontSize) {
             setFontSize(savedFontSize);
           }
+          if (Array.isArray(parsed.events)) {
+            setEvents(parsed.events);
+          }
         }
       }
     } catch (error) {
@@ -355,9 +404,10 @@ const DailyPlanner = () => {
           button: buttonColor,
         },
         fontSize,
+        events,
       })
     );
-  }, [categories, displayedTask, scheduledTask, backgroundColor1, backgroundColor2, textColor, buttonColor, fontSize]);
+  }, [categories, displayedTask, scheduledTask, backgroundColor1, backgroundColor2, textColor, buttonColor, fontSize, events]);
 
   // Add this helper function near your other utility functions
   const isTimeInPast = (hour: number): boolean => {
@@ -422,6 +472,9 @@ const DailyPlanner = () => {
         window.location.href = '/';
     }
   };
+
+  // Add this state at the top of your component
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
     // Main Container
@@ -522,6 +575,24 @@ const DailyPlanner = () => {
         <Tabs defaultValue="planner" className="w-full">
           {/* === PLANNER TAB === */}
           <TabsContent value="planner">
+            {getEventsForDate(currentDate).length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-2">Today's Events</h3>
+                <div className="space-y-2">
+                  {getEventsForDate(currentDate).map((event) => (
+                    <div
+                      key={event.id}
+                      className="p-3 rounded"
+                      style={{ backgroundColor: buttonColor + '40' }}
+                    >
+                      <div className="font-medium">{event.title}</div>
+                      {event.time && <div className="text-sm">{event.time}</div>}
+                      {event.description && <div className="text-sm mt-1">{event.description}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Main Task Input/Display */}
             {!displayedTask ? (
               <form onSubmit={handleMainTaskSubmit} className="space-y-4 mb-6 max-w-md mx-auto">
@@ -721,6 +792,61 @@ const DailyPlanner = () => {
           {/* === CALENDAR TAB === */}
           <TabsContent value="calendar">
             <Card className="border-none bg-white/70">
+              <CardHeader>
+                <div className="flex flex-col items-center gap-4">
+                  <Button 
+                    onClick={() => setIsModalOpen(true)}
+                    className="text-black font-normal hover:bg-black hover:text-white"
+                    style={{ backgroundColor: buttonColor }}
+                  >
+                    Add Event
+                  </Button>
+
+                  {isModalOpen && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                      <div className="bg-white p-6 rounded-lg w-full max-w-md">
+                        <div className="flex justify-between items-center mb-4">
+                          <h2 className="text-xl font-bold">Add New Event</h2>
+                          <button 
+                            onClick={() => setIsModalOpen(false)}
+                            className="text-gray-500 hover:text-gray-700"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        
+                        <form onSubmit={handleAddEvent} className="space-y-4">
+                          <input
+                            className="w-full p-2 border rounded"
+                            placeholder="Event Title"
+                            value={newEvent.title || ''}
+                            onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                          />
+                          <input
+                            className="w-full p-2 border rounded"
+                            type="date"
+                            value={newEvent.date || ''}
+                            onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                          />
+                          <input
+                            className="w-full p-2 border rounded"
+                            type="time"
+                            value={newEvent.time || ''}
+                            onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                          />
+                          <input
+                            className="w-full p-2 border rounded"
+                            placeholder="Description (optional)"
+                            value={newEvent.description || ''}
+                            onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                          />
+                          <Button type="submit">Save Event</Button>
+                        </form>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
               <CardContent className="pt-6">
                   <div className="grid grid-cols-7 gap-2 mb-2">
                     {weekDays.map(day => (
@@ -733,14 +859,43 @@ const DailyPlanner = () => {
                     {monthDays.map((day, index) => (
                       <div
                         key={index}
-                        className={`text-center p-2 rounded-full font-normal`}
+                        className="min-h-[80px] text-center p-2 rounded-lg"
                         style={{
-                            backgroundColor: day === currentDate.getDate() ? buttonColor : 'transparent',
-                            color: day === currentDate.getDate() ? 'white' : 'gray',
+                          backgroundColor: day === currentDate.getDate() ? buttonColor : 'white/10',
+                          color: day === currentDate.getDate() ? 'white' : 'gray',
                         }}
-                    >
-                        {day}
-                    </div>
+                      >
+                        {day && (
+                          <>
+                            <div className="font-normal mb-1">{day}</div>
+                            {/* Events for this day */}
+                            {events
+                              .filter(event => {
+                                const [eventYear, eventMonth, eventDay] = event.date.split('-');
+                                return (
+                                  parseInt(eventDay) === day &&
+                                  parseInt(eventMonth) === (currentDate.getMonth() + 1) &&
+                                  parseInt(eventYear) === currentDate.getFullYear()
+                                );
+                              })
+                              .map((event) => (
+                                <div
+                                  key={event.id}
+                                  className="text-xs p-1 mb-1 rounded"
+                                  style={{ backgroundColor: buttonColor + '40' }}
+                                  title={`${event.title}${event.time ? ` at ${event.time}` : ''}`}
+                                >
+                                  <div className="truncate">{event.title}</div>
+                                  {event.time && (
+                                    <div className="text-[10px] text-gray-600">
+                                      {formatTime12Hour(event.time)}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                          </>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </CardContent>
@@ -751,7 +906,7 @@ const DailyPlanner = () => {
           <TabsContent value="schedule">
             <div className="schedule-view max-w-md mx-auto bg-white/70 p-4">
                 {/* Early Hours (12 AM - 6 AM) */}
-                <details className="cursor-pointer mb-2">
+                {/* <details className="cursor-pointer mb-2">
                     <summary className="text-gray-500 p-2 hover:bg-white/50 rounded">
                         12 AM - 6 AM
                     </summary>
@@ -765,7 +920,7 @@ const DailyPlanner = () => {
                             </div>
                         ))}
                     </div>
-                </details>
+                </details> */}
 
                 {/* Past Hours of Current Day */}
                 <details className="cursor-pointer mb-2">
