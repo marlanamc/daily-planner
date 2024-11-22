@@ -6,8 +6,11 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, X as CloseIcon, Calendar as CalendarIcon, Settings } from 'lucide-react'; 
+import { Plus, X as CloseIcon, Calendar as CalendarIcon, Settings, LogIn, LogOut } from 'lucide-react'; 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from '@/lib/supabase';
+import { User } from '@supabase/supabase-js';
+import AuthComponent from './Auth';
 
 interface Todo {
   id: string;
@@ -68,6 +71,22 @@ const DailyPlanner = () => {
   // These handle which page you're on                 
   const [scheduledTask, setScheduledTask] = useState<ScheduledTask | null>(null);
 
+  // Add this near your other state declarations at the top
+  const [showAuth, setShowAuth] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  // Add this useEffect for auth state
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+        setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
     // Get current date and week dates
   const currentDate = new Date();
@@ -366,6 +385,12 @@ const DailyPlanner = () => {
     return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
 
+  // Add this helper function to get the user's first name
+  const getUserFirstName = () => {
+    if (!user?.user_metadata?.full_name) return '';
+    return user.user_metadata.full_name.split(' ')[0];
+  };
+
   return (
     // Main Container
     <div 
@@ -421,84 +446,42 @@ const DailyPlanner = () => {
         </div>
   
         {/* ===== SETTINGS PANEL ===== */}
-        <div className="absolute top-4 right-4 z-50">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="bg-white/70 hover:bg-white/90"
-            onClick={() => setShowSettings(!showSettings)}
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
-          
-          {showSettings && (
-            <Card className="absolute right-0 mt-2 p-4 bg-white/90 shadow-lg w-64 z-50">
-                {/* Color Picker Items */}
-                  <div className="flex items-center justify-between">
-                  <span className="text-sm">Gradient Top:</span>
-                  <input
-                    type="color"
-                    value={backgroundColor1}
-                    onChange={(e) => setBackgroundColor1(e.target.value)}
-                    className="rounded cursor-pointer"
-                    style={{ width: '40px', height: '40px' }} // Fixed size
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Gradient Bottom:</span>
-                  <input
-                    type="color"
-                    value={backgroundColor2}
-                    onChange={(e) => setBackgroundColor2(e.target.value)}
-                    className="rounded cursor-pointer"
-                    style={{ width: '40px', height: '40px' }} // Fixed size
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Font Color:</span>
-                  <input
-                    type="color"
-                    value={textColor}
-                    onChange={(e) => setTextColor(e.target.value)}
-                    className="rounded cursor-pointer"
-                    style={{ width: '40px', height: '40px' }} // Fixed size
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Button Color:</span>
-                  <input
-                    type="color"
-                    value={buttonColor}
-                    onChange={(e) => setButtonColor(e.target.value)}
-                    className="rounded cursor-pointer"
-                    style={{ width: '40px', height: '40px' }} // Fixed size
-                  />
-                </div>
-                <div className="space-y-4">
-                {/* Add Font Size control */}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Font Size:</span>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      value={fontSize}
-                      onChange={(e) => setFontSize(e.target.value)}
-                      className="w-16 text-center"
-                      min="12"
-                      max="24"
-                    />
-                    <span className="text-xs">px</span>
-                  </div>
-                </div>
-                <Button
-                  onClick={resetColors}
-                  className="whitespace-nowrap mt-4 w-full bg-gray-200 hover:bg-gray-300 text-gray-800"
-                >
-                  Reset Colors
-                </Button>
-              </div>
-            </Card>
+        <div className="absolute top-4 right-4 flex gap-2">
+          {user ? (
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={async (e) => {
+                    e.stopPropagation();
+                    await supabase.auth.signOut();
+                }}
+                className="text-gray-600 hover:text-gray-900"
+            >
+                <LogOut className="h-5 w-5" />
+            </Button>
+          ) : (
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAuth(true);
+                }}
+                className="text-gray-600 hover:text-gray-900"
+            >
+                <LogIn className="h-5 w-5" />
+            </Button>
           )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+                e.stopPropagation();
+                setShowSettings(true);
+            }}
+          >
+            <Settings className="h-6 w-6" />
+          </Button>
         </div>
   
         {/* ===== MAIN CONTENT TABS ===== */}
@@ -872,6 +855,142 @@ const DailyPlanner = () => {
         </Tabs>
   
       </div>
+      {showAuth && (
+        <div 
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowAuth(false)}
+        >
+            <div 
+                className="bg-white rounded-lg p-6 w-full max-w-md"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Sign In</h3>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowAuth(false)}
+                    >
+                        <CloseIcon className="h-4 w-4" />
+                    </Button>
+                </div>
+                <AuthComponent />
+            </div>
+        </div>
+      )}
+      {showSettings && (
+        <div 
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowSettings(false)}
+        >
+            <div 
+                className="bg-white rounded-lg p-6 w-full max-w-md space-y-4"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h3 className="text-lg font-semibold">Settings</h3>
+                        {user && (
+                            <p className="text-sm text-gray-600">
+                                Welcome, {getUserFirstName() || 'User'}!
+                            </p>
+                        )}
+                    </div>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowSettings(false)}
+                    >
+                        <CloseIcon className="h-4 w-4" />
+                    </Button>
+                </div>
+
+                {/* Color Settings */}
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm">Gradient Top:</span>
+                        <input
+                            type="color"
+                            value={backgroundColor1}
+                            onChange={(e) => setBackgroundColor1(e.target.value)}
+                            className="rounded cursor-pointer"
+                            style={{ width: '40px', height: '40px' }}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm">Gradient Bottom:</span>
+                        <input
+                            type="color"
+                            value={backgroundColor2}
+                            onChange={(e) => setBackgroundColor2(e.target.value)}
+                            className="rounded cursor-pointer"
+                            style={{ width: '40px', height: '40px' }}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm">Font Color:</span>
+                        <input
+                            type="color"
+                            value={textColor}
+                            onChange={(e) => setTextColor(e.target.value)}
+                            className="rounded cursor-pointer"
+                            style={{ width: '40px', height: '40px' }}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm">Button Color:</span>
+                        <input
+                            type="color"
+                            value={buttonColor}
+                            onChange={(e) => setButtonColor(e.target.value)}
+                            className="rounded cursor-pointer"
+                            style={{ width: '40px', height: '40px' }}
+                        />
+                    </div>
+                    
+                    {/* Font Size Control */}
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm">Font Size:</span>
+                        <div className="flex items-center gap-2">
+                            <Input
+                                type="number"
+                                value={fontSize}
+                                onChange={(e) => setFontSize(e.target.value)}
+                                className="w-16 text-center"
+                                min="12"
+                                max="24"
+                            />
+                            <span className="text-xs">px</span>
+                        </div>
+                    </div>
+
+                    {/* Reset Button */}
+                    <Button
+                        onClick={resetColors}
+                        className="whitespace-nowrap mt-4 w-full bg-gray-200 hover:bg-gray-300 text-gray-800"
+                    >
+                        Reset Colors
+                    </Button>
+                </div>
+
+                {/* Sign Out Button */}
+                {user && (
+                    <div className="pt-4 border-t">
+                        <Button
+                            variant="outline"
+                            onClick={async () => {
+                                await supabase.auth.signOut();
+                                setShowSettings(false);
+                            }}
+                            className="w-full"
+                        >
+                            Sign Out
+                        </Button>
+                    </div>
+                )}
+            </div>
+        </div>
+      )}
     </div>
   );
  };
