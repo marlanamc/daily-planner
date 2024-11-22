@@ -450,37 +450,38 @@ const DailyPlanner = () => {
           {user ? (
             <Button
                 variant="ghost"
-                size="icon"
                 onClick={async (e) => {
                     e.stopPropagation();
                     await supabase.auth.signOut();
                 }}
-                className="text-gray-600 hover:text-gray-900"
+                className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
             >
                 <LogOut className="h-5 w-5" />
+                <span>Log Out</span>
             </Button>
           ) : (
             <Button
                 variant="ghost"
-                size="icon"
                 onClick={(e) => {
                     e.stopPropagation();
                     setShowAuth(true);
                 }}
-                className="text-gray-600 hover:text-gray-900"
+                className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
             >
                 <LogIn className="h-5 w-5" />
+                <span>Log In</span>
             </Button>
           )}
           <Button
             variant="ghost"
-            size="icon"
             onClick={(e) => {
                 e.stopPropagation();
                 setShowSettings(true);
             }}
+            className="flex items-center gap-2"
           >
             <Settings className="h-6 w-6" />
+            <span>Settings</span>
           </Button>
         </div>
   
