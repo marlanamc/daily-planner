@@ -636,6 +636,13 @@ const DailyPlanner = () => {
     </div>
   )}
 
+  // Define default categories at the top of your component
+  const defaultCategories: Category[] = [
+    { id: crypto.randomUUID(), name: 'Wellness ✨', todos: [], color: '#FBA2BE', newTodo: '', newTodoTimes: null },
+    { id: crypto.randomUUID(), name: 'Apartment 🏠', todos: [], color: '#FFD5DD', newTodo: '', newTodoTimes: null },
+    { id: crypto.randomUUID(), name: 'Job Search 💼', todos: [], color: '#C8E8E5', newTodo: '', newTodoTimes: null },
+  ];
+
   return (
     // Main Container
     <div 
