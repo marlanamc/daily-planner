@@ -94,18 +94,32 @@ const DailyPlanner = () => {
   };
 
   // Add this function to handle event creation
-  const handleAddEvent = (e: React.FormEvent) => {
+  const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newEvent.title && newEvent.date) {
-      const event: CalendarEvent = {
+    if (newEvent.title && newEvent.date && user) {
+      console.log('Attempting to add event:', newEvent);
+      
+      const event = {
         id: crypto.randomUUID(),
         title: newEvent.title,
         date: newEvent.date,
         time: newEvent.time,
-        description: newEvent.description
+        description: newEvent.description,
+        user_id: user.id
       };
-      setEvents([...events, event]);
-      setNewEvent({}); // Reset form
+
+      const { error } = await supabase
+        .from('events')
+        .insert([event]);
+
+      if (error) {
+        console.error('Error saving event:', error);
+      } else {
+        console.log('Event saved successfully:', event);
+        setEvents([...events, event]);
+        setNewEvent({});
+        setIsModalOpen(false);
+      }
     }
   };
 
@@ -469,6 +483,30 @@ const DailyPlanner = () => {
 
   // Add this state at the top of your component
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Add these functions near your other useEffects
+  useEffect(() => {
+    // Load events when user logs in
+    const loadEvents = async () => {
+      if (user) {
+        console.log('Attempting to load events for user:', user.id);
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .eq('user_id', user.id);
+        
+        if (error) {
+          console.error('Error loading events:', error);
+        }
+        if (data) {
+          console.log('Events loaded successfully:', data);
+          setEvents(data);
+        }
+      }
+    };
+
+    loadEvents();
+  }, [user]);
 
   return (
     // Main Container
