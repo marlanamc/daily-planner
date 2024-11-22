@@ -446,43 +446,44 @@ const DailyPlanner = () => {
         </div>
   
         {/* ===== SETTINGS PANEL ===== */}
-        <div className="absolute top-4 right-4 flex gap-2">
-          {user ? (
-            <Button
-                variant="ghost"
-                onClick={async (e) => {
-                    e.stopPropagation();
-                    await supabase.auth.signOut();
-                }}
-                className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
-            >
-                <LogOut className="h-5 w-5" />
-                <span>Log Out</span>
-            </Button>
-          ) : (
+        <div className="absolute top-4 right-4 flex flex-col gap-2">
             <Button
                 variant="ghost"
                 onClick={(e) => {
                     e.stopPropagation();
-                    setShowAuth(true);
+                    setShowSettings(true);
                 }}
-                className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
+                className="flex items-center gap-2"
             >
-                <LogIn className="h-5 w-5" />
-                <span>Log In</span>
+                <Settings className="h-6 w-6" />
+                <span>Settings</span>
             </Button>
-          )}
-          <Button
-            variant="ghost"
-            onClick={(e) => {
-                e.stopPropagation();
-                setShowSettings(true);
-            }}
-            className="flex items-center gap-2"
-          >
-            <Settings className="h-6 w-6" />
-            <span>Settings</span>
-          </Button>
+
+            {user ? (
+                <Button
+                    variant="ghost"
+                    onClick={async (e) => {
+                        e.stopPropagation();
+                        await supabase.auth.signOut();
+                    }}
+                    className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
+                >
+                    <LogOut className="h-5 w-5" />
+                    <span>Log Out</span>
+                </Button>
+            ) : (
+                <Button
+                    variant="ghost"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setShowAuth(true);
+                    }}
+                    className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
+                >
+                    <LogIn className="h-5 w-5" />
+                    <span>Log In</span>
+                </Button>
+            )}
         </div>
   
         {/* ===== MAIN CONTENT TABS ===== */}
