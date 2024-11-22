@@ -177,10 +177,16 @@ const DailyPlanner = () => {
   const getHourFromTime = (time: string | null) => {
     if (!time) return null;
     const [hours, minutes] = time.split(':').map(Number);
-    // Calculate the exact position including minutes
-    return (hours - 6) + (minutes / 60);
+    return hours + (minutes / 60);
   };
 
+  const getTaskHeight = (startTime: string | null, endTime: string | null): string => {
+    if (!startTime || !endTime) return '0px';
+    const start = getHourFromTime(startTime);
+    const end = getHourFromTime(endTime);
+    if (start === null || end === null) return '0px';
+    return `${(end - start) * 48}px`;
+  };
 
   const getTimeDifferenceInHours = (startTime: string | null, endTime: string | null) => {
     if (!startTime || !endTime) return null; // Handle null or undefined inputs
@@ -997,7 +1003,7 @@ const DailyPlanner = () => {
                                 className="absolute left-0 w-full rounded px-2"
                                 style={{
                                     backgroundColor: buttonColor,
-                                    height: getTaskHeight(scheduledTask),
+                                    height: getTaskHeight(scheduledTask.startTime, scheduledTask.endTime),
                                     top: `${((getHourFromTime(scheduledTask.startTime) || 0) - 6) * 48}px`,
                                     opacity: scheduledTask.completed ? 0.5 : 1
                                 }}
@@ -1012,25 +1018,27 @@ const DailyPlanner = () => {
                         {categories.flatMap((category) =>
                             category.todos
                                 .filter((todo) => todo.startTime && todo.endTime)
-                                .map((todo) => (
-                                    <div
-                                        key={todo.id}
-                                        className="absolute left-0 w-full rounded px-2"
-                                        style={{
-                                            backgroundColor: category.color + '80',
-                                            height: (() => {
-                                                const diff = getTimeDifferenceInHours(todo.startTime, todo.endTime);
-                                                return diff !== null ? `${diff * 48}px` : '0px';
-                                            })(),
-                                            top: `${((getHourFromTime(todo.startTime) || 0) - 6) * 48}px`,
-                                            opacity: todo.completed ? 0.5 : 1
-                                        }}
-                                    >
-                                        <span className={todo.completed ? 'line-through' : ''}>
-                                            {todo.text}
-                                        </span>
-                                    </div>
-                                ))
+                                .map((todo) => {
+                                    const startHour = getHourFromTime(todo.startTime);
+                                    if (startHour === null) return null;
+                                    
+                                    return (
+                                        <div
+                                            key={todo.id}
+                                            className="absolute left-0 w-full rounded px-2"
+                                            style={{
+                                                backgroundColor: category.color + '80',
+                                                height: getTaskHeight(todo.startTime, todo.endTime),
+                                                top: `${(startHour - 6) * 48}px`,
+                                                opacity: todo.completed ? 0.5 : 1
+                                            }}
+                                        >
+                                            <span className={todo.completed ? 'line-through' : ''}>
+                                                {todo.text}
+                                            </span>
+                                        </div>
+                                    );
+                                })
                         )}
                     </div>
                 </div>
