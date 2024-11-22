@@ -17,9 +17,10 @@ interface Todo {
   id: string;
   text: string;
   completed: boolean;
-  dueDate?: string;
-  startTime: string | null;
-  endTime: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  category_id?: string;
+  user_id?: string;
 }
 
 interface Category {
@@ -581,6 +582,8 @@ const DailyPlanner = () => {
           .select('*')
           .eq('user_id', user.id);
 
+        console.log('Loaded todos:', todosData);
+
         if (todosData) {
           todosData.forEach(todo => {
             const categoryIndex = categoriesWithTodos.findIndex(
@@ -592,13 +595,52 @@ const DailyPlanner = () => {
           });
         }
         
-        // Replace default categories with user's categories
+        console.log('Setting categories to:', categoriesWithTodos);
         setCategories(categoriesWithTodos);
       }
     };
 
     loadUserData();
   }, [user]);
+
+  // Add state for event detail modal
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [isEventDetailModalOpen, setIsEventDetailModalOpen] = useState(false);
+
+  // Add the event detail modal
+  {isEventDetailModalOpen && selectedEvent && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg w-full max-w-sm p-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">{selectedEvent.title}</h3>
+          <button 
+            onClick={() => setIsEventDetailModalOpen(false)}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm">
+            <span className="font-medium">Date: </span>
+            {new Date(selectedEvent.date).toLocaleDateString()}
+          </p>
+          {selectedEvent.time && (
+            <p className="text-sm">
+              <span className="font-medium">Time: </span>
+              {formatTime12Hour(selectedEvent.time)}
+            </p>
+          )}
+          {selectedEvent.description && (
+            <p className="text-sm">
+              <span className="font-medium">Description: </span>
+              {selectedEvent.description}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  )}
 
   return (
     // Main Container
@@ -972,18 +1014,11 @@ const DailyPlanner = () => {
                 </div>
               </CardHeader>
               <CardContent className="pt-6">
-                  <div className="grid grid-cols-7 gap-2 mb-2">
-                    {weekDays.map(day => (
-                      <div key={day} className="text-center text-gray-700 font-normal">
-                        {day[0]}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-7 gap-2">
+                  <div className="grid grid-cols-7 gap-1 sm:gap-2">
                     {monthDays.map((day, index) => (
                       <div
                         key={index}
-                        className="min-h-[80px] text-center p-2 rounded-lg"
+                        className="min-h-[80px] sm:min-h-[100px] text-center p-1 sm:p-2 rounded-lg relative"
                         style={{
                           backgroundColor: day === currentDate.getDate() ? buttonColor : 'white/10',
                           color: day === currentDate.getDate() ? 'white' : 'gray',
@@ -992,31 +1027,52 @@ const DailyPlanner = () => {
                         {day && (
                           <>
                             <div className="font-normal mb-1">{day}</div>
-                            {/* Events for this day */}
-                            {events
-                              .filter(event => {
-                                const [eventYear, eventMonth, eventDay] = event.date.split('-');
-                                return (
-                                  parseInt(eventDay) === day &&
-                                  parseInt(eventMonth) === (currentDate.getMonth() + 1) &&
-                                  parseInt(eventYear) === currentDate.getFullYear()
-                                );
-                              })
-                              .map((event) => (
-                                <div
-                                  key={event.id}
-                                  className="text-xs p-1 mb-1 rounded"
-                                  style={{ backgroundColor: buttonColor + '40' }}
-                                  title={`${event.title}${event.time ? ` at ${event.time}` : ''}`}
-                                >
-                                  <div className="truncate">{event.title}</div>
-                                  {event.time && (
-                                    <div className="text-[10px] text-gray-600">
-                                      {formatTime12Hour(event.time)}
+                            {/* Events container with scroll on overflow */}
+                            <div className="space-y-1 max-h-[60px] overflow-y-auto">
+                              {events
+                                .filter(event => {
+                                  const [eventYear, eventMonth, eventDay] = event.date.split('-');
+                                  return (
+                                    parseInt(eventDay) === day &&
+                                    parseInt(eventMonth) === (currentDate.getMonth() + 1) &&
+                                    parseInt(eventYear) === currentDate.getFullYear()
+                                  );
+                                })
+                                .map((event) => (
+                                  <div
+                                    key={event.id}
+                                    className="text-[10px] sm:text-xs p-1 rounded cursor-pointer hover:opacity-80"
+                                    style={{ backgroundColor: buttonColor + '40' }}
+                                    onClick={() => {
+                                      // Show event details in a modal
+                                      setSelectedEvent(event);
+                                      setIsEventDetailModalOpen(true);
+                                    }}
+                                  >
+                                    <div className="font-medium truncate">
+                                      {event.title}
                                     </div>
-                                  )}
-                                </div>
-                              ))}
+                                    {event.time && (
+                                      <div className="text-[8px] sm:text-[10px] text-gray-600">
+                                        {formatTime12Hour(event.time)}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                            </div>
+                            {/* Indicator for more events */}
+                            {events.filter(event => {
+                              const [eventYear, eventMonth, eventDay] = event.date.split('-');
+                              return (
+                                parseInt(eventDay) === day &&
+                                parseInt(eventMonth) === (currentDate.getMonth() + 1) &&
+                                parseInt(eventYear) === currentDate.getFullYear()
+                              );
+                            }).length > 2 && (
+                              <div className="text-[8px] sm:text-xs text-gray-500 mt-1">
+                                more...
+                              </div>
+                            )}
                           </>
                         )}
                       </div>
@@ -1103,9 +1159,9 @@ const DailyPlanner = () => {
                         {/* Category Tasks */}
                         {categories.flatMap((category) =>
                             category.todos
-                                .filter((todo) => todo.startTime && todo.endTime)
+                                .filter((todo) => todo.start_time && todo.end_time)
                                 .map((todo) => {
-                                    const startHour = getHourFromTime(todo.startTime);
+                                    const startHour = getHourFromTime(todo.start_time);
                                     if (startHour === null) return null;
                                     
                                     return (
@@ -1114,14 +1170,21 @@ const DailyPlanner = () => {
                                             className="absolute left-0 w-full rounded px-2"
                                             style={{
                                                 backgroundColor: category.color + '80',
-                                                height: getTaskHeight(todo.startTime, todo.endTime),
+                                                height: getTaskHeight(
+                                                    { startTime: todo.start_time, endTime: todo.end_time }
+                                                ),
                                                 top: `${(startHour - 6) * 48}px`,
                                                 opacity: todo.completed ? 0.5 : 1
                                             }}
                                         >
-                                            <span className={todo.completed ? 'line-through' : ''}>
+                                            <span className={`text-sm ${todo.completed ? 'line-through' : ''}`}>
                                                 {todo.text}
                                             </span>
+                                            {todo.start_time && todo.end_time && (
+                                                <div className="text-xs opacity-75">
+                                                    {formatTime12Hour(todo.start_time)} - {formatTime12Hour(todo.end_time)}
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })
