@@ -21,6 +21,7 @@ interface Todo {
   end_time: string | null;
   category_id?: string;
   user_id?: string;
+  dueDate?: string;
 }
 
 interface Category {
@@ -268,13 +269,6 @@ const DailyPlanner = () => {
       category.newTodoTimes = null;
       setCategories(updatedCategories);
     }
-  };
-
-
-  const updateTodoDueDate = (categoryIndex: number, todoIndex: number, date: string) => {
-    const updatedCategories = [...categories];
-    updatedCategories[categoryIndex].todos[todoIndex].dueDate = date || undefined; // Use undefined
-    setCategories(updatedCategories);
   };
 
 
