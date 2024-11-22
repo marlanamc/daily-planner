@@ -874,7 +874,7 @@ const DailyPlanner = () => {
                         <CloseIcon className="h-4 w-4" />
                     </Button>
                 </div>
-                <AuthComponent />
+                <AuthComponent onClose={() => setShowAuth(false)} />
             </div>
         </div>
       )}
