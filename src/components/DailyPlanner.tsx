@@ -23,11 +23,12 @@ interface Todo {
 }
 
 interface Category {
-  name: string; // Category name like "Wellness"
-  todos: Todo[]; // List of todos in this category
-  color: string; // Color of the category card
-  newTodo: string; // Text being typed in the "Add todo" box
-  newTodoTimes?: { start: string; end: string } | null; // Times for the new todo (optional)
+  id: string;
+  name: string;
+  todos: Todo[];
+  color: string;
+  newTodo: string;
+  newTodoTimes?: { start: string; end: string } | null;
 }
 
 interface ScheduledTask {
@@ -51,10 +52,10 @@ const DailyPlanner = () => {
   const [mainTask, setMainTask] = useState('');
   const [displayedTask, setDisplayedTask] = useState('');
   const [categories, setCategories] = useState<Category[]>([
-    { name: 'Wellness ✨', todos: [], color: '#FBA2BE', newTodo: '', newTodoTimes: null },
-    { name: 'Apartment 🏠', todos: [], color: '#FFD5DD', newTodo: '', newTodoTimes: null },
-    { name: 'Job Search 💼', todos: [], color: '#C8E8E5', newTodo: '', newTodoTimes: null },
-]);
+    { id: crypto.randomUUID(), name: 'Wellness ✨', todos: [], color: '#FBA2BE', newTodo: '', newTodoTimes: null },
+    { id: crypto.randomUUID(), name: 'Apartment 🏠', todos: [], color: '#FFD5DD', newTodo: '', newTodoTimes: null },
+    { id: crypto.randomUUID(), name: 'Job Search 💼', todos: [], color: '#C8E8E5', newTodo: '', newTodoTimes: null },
+  ]);
   const [editingCategory, setEditingCategory] = useState<number | null>(null);
   const [newCategoryName, setNewCategoryName] = useState('');
 
@@ -180,12 +181,18 @@ const DailyPlanner = () => {
     return hours + (minutes / 60);
   };
 
-  const getTaskHeight = (startTime: string | null, endTime: string | null): string => {
-    if (!startTime || !endTime) return '0px';
-    const start = getHourFromTime(startTime);
-    const end = getHourFromTime(endTime);
+  const getTaskHeight = (
+    task: ScheduledTask | { startTime: string | null; endTime: string | null } | null
+  ): string => {
+    if (!task || !task.startTime || !task.endTime) {
+      return '0px';
+    }
+
+    const start = getHourFromTime(task.startTime);
+    const end = getHourFromTime(task.endTime);
+    
     if (start === null || end === null) return '0px';
-    return `${(end - start) * 48}px`;
+    return `${(end - start) * 48}px`; // 48px per hour
   };
 
   const getTimeDifferenceInHours = (startTime: string | null, endTime: string | null) => {
@@ -224,25 +231,35 @@ const DailyPlanner = () => {
   }
 
 
-  const handleAddTodo = (categoryIndex: number) => {
+  const handleAddTodo = async (categoryIndex: number) => {
+    if (!user) return;
+    
     const updatedCategories = [...categories];
+    const category = updatedCategories[categoryIndex];
 
-    if (updatedCategories[categoryIndex].newTodo.trim()) {
-        updatedCategories[categoryIndex].todos.push({
-            id: crypto.randomUUID(),
-            text: updatedCategories[categoryIndex].newTodo,
-            completed: false,
-            dueDate: undefined,
-            startTime: updatedCategories[categoryIndex].newTodoTimes?.start || null,
-            endTime: updatedCategories[categoryIndex].newTodoTimes?.end || null,
-        });
+    if (category.newTodo.trim()) {
+      const todo = {
+        id: crypto.randomUUID(),
+        user_id: user.id,
+        category_id: category.id,
+        text: category.newTodo,
+        completed: false,
+        start_time: category.newTodoTimes?.start || null,
+        end_time: category.newTodoTimes?.end || null
+      };
 
-        // Reset newTodo and newTodoTimes
-        updatedCategories[categoryIndex].newTodo = '';
-        updatedCategories[categoryIndex].newTodoTimes = null;
+      const { error } = await supabase
+        .from('todos')
+        .insert([todo]);
+
+      if (!error) {
+        category.todos.push(todo);
+        category.newTodo = '';
+        category.newTodoTimes = null;
         setCategories(updatedCategories);
+      }
     }
-};
+  };
 
 
   const updateTodoDueDate = (categoryIndex: number, todoIndex: number, date: string) => {
@@ -252,11 +269,22 @@ const DailyPlanner = () => {
   };
 
 
-  const toggleTodo = (categoryIndex: number, todoIndex: number) => {
+  const toggleTodo = async (categoryIndex: number, todoIndex: number) => {
+    if (!user) return;
+
     const updatedCategories = [...categories];
-    updatedCategories[categoryIndex].todos[todoIndex].completed = 
-      !updatedCategories[categoryIndex].todos[todoIndex].completed;
-    setCategories(updatedCategories);
+    const todo = updatedCategories[categoryIndex].todos[todoIndex];
+    const newCompleted = !todo.completed;
+
+    const { error } = await supabase
+      .from('todos')
+      .update({ completed: newCompleted })
+      .eq('id', todo.id);
+
+    if (!error) {
+      todo.completed = newCompleted;
+      setCategories(updatedCategories);
+    }
   };
 
   const startEditingCategory = (index: number, currentName: string) => {
@@ -281,23 +309,9 @@ const DailyPlanner = () => {
 
   const isScheduledTaskValid = (
     task: ScheduledTask | null
-): task is ScheduledTask & { startTime: string; endTime: string } => {
+  ): task is ScheduledTask & { startTime: string; endTime: string } => {
     return !!task?.startTime && !!task?.endTime;
-};
-
-  const getTaskHeight = (scheduledTask: ScheduledTask | null): string => {
-    if (!scheduledTask || !scheduledTask.startTime || !scheduledTask.endTime) {
-      return '0px'; // Fallback height
-    }
-  
-    const startTime = scheduledTask.startTime;
-    const endTime = scheduledTask.endTime;
-  
-    // Ensure non-null access is explicitly enforced here
-    const timeDifferenceInHours = getTimeDifferenceInHours(startTime, endTime);
-    return timeDifferenceInHours !== null ? `${timeDifferenceInHours * 48}px` : '0px';
   };
-
 
     // For main task
   const [startTime, setStartTime] = useState('');
@@ -319,40 +333,33 @@ const DailyPlanner = () => {
 };
 
 
-  const handleMainTaskSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); // Prevent the default form submission behavior
+  const handleMainTaskSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!user || !mainTask) return;
 
-    if (mainTask) {
-        // Attempt to extract the time from the main task string
-        const timeMatch = mainTask.match(/(\d{1,2})\s*(AM|PM)/i);
-        if (timeMatch) {
-            const hour = parseInt(timeMatch[1]);
-            const isPM = timeMatch[2].toUpperCase() === 'PM';
-            const taskHour = isPM && hour !== 12 ? hour + 12 : hour % 12; // Convert to 24-hour time format
+    const task = {
+      user_id: user.id,
+      text: mainTask,
+      start_time: startTime,
+      end_time: endTime,
+      completed: false
+    };
 
-            setScheduledTask({
-              text: mainTask,
-              startTime,
-              endTime,
-              hour: taskHour, // Optional property
-              completed: false,
-          
-            });
-        } else {
-            // If no time is extracted, set the task without an hour
-            setScheduledTask({
-                text: mainTask,
-                startTime,
-                endTime,
-                completed: false,
-            });
-        }
+    const { error } = await supabase
+      .from('main_tasks')
+      .insert([task]);
 
-        // Update the displayed task and reset form fields
-        setDisplayedTask(mainTask);
-        setMainTask('');
-        setStartTime('');
-        setEndTime('');
+    if (!error) {
+      setScheduledTask({
+        text: mainTask,
+        startTime: startTime,
+        endTime: endTime,
+        completed: false
+      });
+      setDisplayedTask(mainTask);
+      setMainTask('');
+      setStartTime('');
+      setEndTime('');
     }
   };
 
@@ -512,6 +519,91 @@ const DailyPlanner = () => {
     };
 
     loadEvents();
+  }, [user]);
+
+  // Add these loading functions
+  useEffect(() => {
+    const loadUserData = async () => {
+      if (!user) return;
+
+      // First check if user has any categories
+      const { data: existingCategories } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (!existingCategories || existingCategories.length === 0) {
+        // If no categories exist, create default ones
+        const defaultCategories = [
+          { name: 'Wellness ✨', color: '#FBA2BE', user_id: user.id },
+          { name: 'Apartment 🏠', color: '#FFD5DD', user_id: user.id },
+          { name: 'Job Search 💼', color: '#C8E8E5', user_id: user.id },
+        ];
+
+        const { data: newCategories, error } = await supabase
+          .from('categories')
+          .insert(defaultCategories)
+          .select();
+
+        if (!error && newCategories) {
+          setCategories(newCategories.map(cat => ({
+            ...cat,
+            todos: [],
+            newTodo: '',
+            newTodoTimes: null
+          })));
+        }
+      } else {
+        // Use existing categories
+        const categoriesWithTodos = existingCategories.map(cat => ({
+          ...cat,
+          todos: [],
+          newTodo: '',
+          newTodoTimes: null
+        }));
+        setCategories(categoriesWithTodos);
+
+        // Load todos for each category
+        const { data: todosData } = await supabase
+          .from('todos')
+          .select('*')
+          .eq('user_id', user.id);
+
+        if (todosData) {
+          const updatedCategories = [...categoriesWithTodos];
+          todosData.forEach(todo => {
+            const categoryIndex = updatedCategories.findIndex(
+              cat => cat.id === todo.category_id
+            );
+            if (categoryIndex !== -1) {
+              updatedCategories[categoryIndex].todos.push(todo);
+            }
+          });
+          setCategories(updatedCategories);
+        }
+      }
+
+      // Load main task
+      const { data: mainTaskData } = await supabase
+        .from('main_tasks')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (mainTaskData) {
+        setDisplayedTask(mainTaskData.text);
+        setScheduledTask({
+          text: mainTaskData.text,
+          startTime: mainTaskData.start_time,
+          endTime: mainTaskData.end_time,
+          completed: mainTaskData.completed
+        });
+      }
+    };
+
+    loadUserData();
   }, [user]);
 
   return (
