@@ -77,15 +77,28 @@ const DailyPlanner = () => {
 
   // Add this useEffect for auth state
   useEffect(() => {
+    // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
+        console.log('Initial session check:', session ? 'logged in' : 'logged out');
         setUser(session?.user ?? null);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        console.log('Auth state changed:', event, session ? 'logged in' : 'logged out');
         setUser(session?.user ?? null);
+        
+        if (event === 'SIGNED_OUT') {
+            // Clear any local storage if needed
+            localStorage.removeItem('supabase.auth.token');
+            // Force reload after sign out
+            window.location.reload();
+        }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+        subscription.unsubscribe();
+    };
   }, []);
 
     // Get current date and week dates
@@ -391,6 +404,25 @@ const DailyPlanner = () => {
     return user.user_metadata.full_name.split(' ')[0];
   };
 
+  const handleSignOut = async () => {
+    try {
+        // Try multiple sign-out approaches
+        await Promise.all([
+            supabase.auth.signOut(),
+            // Clear storage
+            localStorage.clear(),
+            sessionStorage.clear()
+        ]);
+        
+        // Force reload the page
+        window.location.href = '/';
+    } catch (error) {
+        console.error('Sign out error:', error);
+        // Force reload anyway
+        window.location.href = '/';
+    }
+  };
+
   return (
     // Main Container
     <div 
@@ -462,9 +494,9 @@ const DailyPlanner = () => {
             {user ? (
                 <Button
                     variant="ghost"
-                    onClick={async (e) => {
+                    onClick={(e) => {
                         e.stopPropagation();
-                        await supabase.auth.signOut();
+                        handleSignOut();
                     }}
                     className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
                 >
