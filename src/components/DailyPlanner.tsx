@@ -62,6 +62,14 @@ interface MainTask {
   user_id: string;
 }
 
+// Add this interface for the schedule items
+interface ScheduleItem {
+  id: string;
+  startTime: string;  // Make this required, not optional
+  endTime: string | null;
+  render: (style: React.CSSProperties) => React.ReactNode;
+}
+
 const DailyPlanner = () => {
       // Core state
   const [mainTask, setMainTask] = useState('');
@@ -1458,12 +1466,14 @@ const DailyPlanner = () => {
                           </span>
                         </div>
                       )
-                    }] : []),
+                    } as ScheduleItem] : []),
                     
                     // Category todos
                     ...categories.flatMap(category =>
                       category.todos
-                        .filter(todo => todo.start_time && todo.end_time)
+                        .filter((todo): todo is Todo & { start_time: string } => 
+                          Boolean(todo.start_time && todo.end_time)
+                        )
                         .map(todo => ({
                           id: todo.id,
                           startTime: todo.start_time,
@@ -1482,12 +1492,14 @@ const DailyPlanner = () => {
                               </span>
                             </div>
                           )
-                        }))
+                        } as ScheduleItem))
                     ),
                     
                     // Events
                     ...getEventsForCurrentDate()
-                      .filter(event => event.start_time)
+                      .filter((event): event is CalendarEvent & { start_time: string } => 
+                        Boolean(event.start_time)
+                      )
                       .map(event => ({
                         id: event.id,
                         startTime: event.start_time,
@@ -1510,7 +1522,7 @@ const DailyPlanner = () => {
                             </div>
                           </div>
                         )
-                      }))
+                      } as ScheduleItem))
                   ]
                     .filter(item => {
                       const startHour = getHourFromTime(item.startTime);
