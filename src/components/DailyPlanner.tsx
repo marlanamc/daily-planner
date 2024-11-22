@@ -13,6 +13,7 @@ import { User } from '@supabase/supabase-js';
 import AuthComponent from './Auth';
 
 
+
 interface Todo {
   id: string;
   text: string;
@@ -44,9 +45,21 @@ interface ScheduledTask {
 interface CalendarEvent {
   id: string;
   title: string;
-  date: string; // YYYY-MM-DD format
-  time?: string;
+  date: string;
+  start_time?: string | null;
+  end_time?: string | null;
   description?: string;
+  user_id?: string;
+}
+
+// Add this interface near your other interfaces
+interface MainTask {
+  id: string;
+  text: string;
+  start_time: string | null;
+  end_time: string | null;
+  completed: boolean;
+  user_id: string;
 }
 
 const DailyPlanner = () => {
@@ -96,33 +109,58 @@ const DailyPlanner = () => {
     return date.toISOString().split('T')[0];
   };
 
-  // Add this function to handle event creation
+  // Update the handleAddEvent function
   const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newEvent.title && newEvent.date && user) {
-      console.log('Attempting to add event:', newEvent);
+    
+    try {
+      if (!user) {
+        console.error('No user logged in');
+        return;
+      }
       
-      const event = {
-        id: crypto.randomUUID(),
+      if (!newEvent.title || !newEvent.date) {
+        console.error('Missing required fields');
+        return;
+      }
+
+      // Create a new event object
+      const eventData = {
         title: newEvent.title,
         date: newEvent.date,
-        time: newEvent.time,
-        description: newEvent.description,
+        start_time: newEvent.start_time || null,
+        end_time: newEvent.end_time || null,
+        description: newEvent.description || null,
         user_id: user.id
       };
 
-      const { error } = await supabase
-        .from('events')
-        .insert([event]);
+      console.log('Attempting to save event:', eventData);
 
+      const { data, error } = await supabase
+        .from('events')
+        .insert([eventData])
+        .select('*')
+        .single();
+      
       if (error) {
-        console.error('Error saving event:', error);
-      } else {
-        console.log('Event saved successfully:', event);
-        setEvents([...events, event]);
-        setNewEvent({});
-        setIsModalOpen(false);
+        console.error('Supabase error:', error);
+        return;
       }
+
+      if (!data) {
+        console.error('No data returned from insert');
+        return;
+      }
+
+      console.log('Event saved successfully:', data);
+      
+      // Update local state
+      setEvents(prevEvents => [...prevEvents, data]);
+      setNewEvent({});
+      setIsModalOpen(false);
+
+    } catch (error) {
+      console.error('Unexpected error:', error);
     }
   };
 
@@ -177,31 +215,42 @@ const DailyPlanner = () => {
     return week;
   };
 
-  const getHourFromTime = (time: string | null) => {
+  const getHourFromTime = (time: string | null): number | null => {
     if (!time) return null;
     const [hours, minutes] = time.split(':').map(Number);
     return hours + (minutes / 60);
+  };
+
+  const getTopPosition = (time: string | null): string => {
+    if (!time) return '0px';
+    const hour = getHourFromTime(time);
+    if (hour === null) return '0px';
+    
+    // Calculate offset based on whether we're showing past times
+    const visibleStartHour = showPastTimes ? 6 : Math.max(6, new Date().getHours());
+    const position = (hour - visibleStartHour) * 48;
+    return `${position}px`;
   };
 
   const getTaskHeight = (
     startTime: string | null | { startTime: string | null; endTime: string | null },
     endTime?: string | null
   ): string => {
-    // If first parameter is an object
+    // Handle object parameter
     if (typeof startTime === 'object' && startTime !== null) {
-      if (!startTime.startTime || !startTime.endTime) return '0px';
+      if (!startTime.startTime || !startTime.endTime) return '48px'; // Default height
       const start = getHourFromTime(startTime.startTime);
       const end = getHourFromTime(startTime.endTime);
-      if (start === null || end === null) return '0px';
-      return `${(end - start) * 48}px`;
+      if (start === null || end === null) return '48px';
+      return `${Math.max((end - start) * 48, 48)}px`; // Minimum height of 48px
     }
-    
-    // If parameters are separate
-    if (!startTime || !endTime) return '0px';
+
+    // Handle separate parameters
+    if (!startTime || !endTime) return '48px';
     const start = getHourFromTime(startTime);
     const end = getHourFromTime(endTime);
-    if (start === null || end === null) return '0px';
-    return `${(end - start) * 48}px`;
+    if (start === null || end === null) return '48px';
+    return `${Math.max((end - start) * 48, 48)}px`;
   };
 
   const getTimeDifferenceInHours = (startTime: string | null, endTime: string | null) => {
@@ -311,10 +360,30 @@ const DailyPlanner = () => {
     }
   };
 
-  const deleteTodo = (categoryIndex: number, todoIndex: number) => {
+  const deleteTodo = async (categoryIndex: number, todoIndex: number) => {
+    const todo = categories[categoryIndex].todos[todoIndex];
+    
+    if (user && todo.id) {
+      // Delete from Supabase first
+      const { error } = await supabase
+        .from('todos')
+        .delete()
+        .eq('id', todo.id);
+
+      if (error) {
+        console.error('Error deleting todo:', error);
+        return;
+      }
+    }
+
+    // Then update local state
     const updatedCategories = [...categories];
     updatedCategories[categoryIndex].todos.splice(todoIndex, 1);
     setCategories(updatedCategories);
+  };
+
+  const handleDeleteTodo = async (categoryIndex: number, todoIndex: number) => {
+    await deleteTodo(categoryIndex, todoIndex);
   };
 
   const isScheduledTaskValid = (
@@ -343,36 +412,178 @@ const DailyPlanner = () => {
 };
 
 
-  const handleMainTaskSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!user || !mainTask) return;
+  const [mainTaskId, setMainTaskId] = useState<string | null>(null);
 
-    const task = {
-      user_id: user.id,
-      text: mainTask,
-      start_time: startTime,
-      end_time: endTime,
-      completed: false
+  // Update the useEffect for loading the main task
+  useEffect(() => {
+    const loadMainTask = async () => {
+      if (!user) {
+        console.log('No user logged in, skipping main task load');
+        return;
+      }
+
+      console.log('Attempting to load main task for user:', user.id);
+
+      try {
+        const { data, error } = await supabase
+          .from('main_tasks')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (error) {
+          console.error('Supabase error loading main task:', error);
+          return;
+        }
+
+        console.log('Main task data received:', data);
+
+        // Check if we got any data back
+        if (data && data.length > 0) {
+          const mainTask = data[0];
+          console.log('Setting main task:', mainTask);
+          
+          setMainTaskId(mainTask.id);
+          setDisplayedTask(mainTask.text);
+          setScheduledTask({
+            text: mainTask.text,
+            startTime: mainTask.start_time,
+            endTime: mainTask.end_time,
+            completed: mainTask.completed
+          });
+        } else {
+          console.log('No main task found for user');
+        }
+      } catch (error) {
+        console.error('Unexpected error loading main task:', error);
+      }
     };
 
-    const { error } = await supabase
-      .from('main_tasks')
-      .insert([task]);
+    loadMainTask();
+  }, [user]);
 
-    if (!error) {
-      setScheduledTask({
+  // Update the handleMainTaskSubmit function with better error handling
+  const handleMainTaskSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    try {
+      if (!user) {
+        console.error('No user logged in');
+        return;
+      }
+
+      if (!mainTask) {
+        console.error('No main task text provided');
+        return;
+      }
+
+      console.log('Submitting main task:', {
         text: mainTask,
-        startTime: startTime,
-        endTime: endTime,
-        completed: false
+        startTime,
+        endTime,
+        userId: user.id
       });
-      setDisplayedTask(mainTask);
-      setMainTask('');
-      setStartTime('');
-      setEndTime('');
+
+      // If there's an existing main task, delete it first
+      if (mainTaskId) {
+        console.log('Deleting existing main task:', mainTaskId);
+        const { error: deleteError } = await supabase
+          .from('main_tasks')
+          .delete()
+          .eq('id', mainTaskId);
+
+        if (deleteError) {
+          console.error('Error deleting existing main task:', deleteError);
+          return;
+        }
+      }
+
+      // Insert new main task
+      const { data, error } = await supabase
+        .from('main_tasks')
+        .insert([{
+          user_id: user.id,
+          text: mainTask,
+          start_time: startTime || null,
+          end_time: endTime || null,
+          completed: false
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error saving main task:', error);
+        return;
+      }
+
+      if (data) {
+        console.log('Main task saved successfully:', data);
+        setMainTaskId(data.id);
+        setScheduledTask({
+          text: mainTask,
+          startTime: startTime || null,
+          endTime: endTime || null,
+          completed: false
+        });
+        setDisplayedTask(mainTask);
+        setMainTask('');
+        setStartTime('');
+        setEndTime('');
+      }
+    } catch (error) {
+      console.error('Unexpected error handling main task:', error);
     }
   };
 
+  // Add this function to handle main task completion
+  const toggleMainTaskCompletion = async () => {
+    if (!user || !mainTaskId || !scheduledTask) return;
+
+    try {
+      const newCompletedState = !scheduledTask.completed;
+
+      const { error } = await supabase
+        .from('main_tasks')
+        .update({ completed: newCompletedState })
+        .eq('id', mainTaskId);
+
+      if (error) {
+        console.error('Error updating main task completion:', error);
+        return;
+      }
+
+      setScheduledTask({
+        ...scheduledTask,
+        completed: newCompletedState
+      });
+    } catch (error) {
+      console.error('Error toggling main task completion:', error);
+    }
+  };
+
+  // Update the clear main task function
+  const clearMainTask = async () => {
+    if (!user || !mainTaskId) return;
+
+    try {
+      const { error } = await supabase
+        .from('main_tasks')
+        .delete()
+        .eq('id', mainTaskId);
+
+      if (error) {
+        console.error('Error deleting main task:', error);
+        return;
+      }
+
+      setMainTaskId(null);
+      setDisplayedTask('');
+      setScheduledTask(null);
+    } catch (error) {
+      console.error('Error clearing main task:', error);
+    }
+  };
 
   const resetColors = () => {
     setBackgroundColor1('#fce7f3');
@@ -462,13 +673,6 @@ const DailyPlanner = () => {
       // If hours are equal, compare minutes
       return aMin - bMin;
     });
-  };
-
-  // Add this function inside your DailyPlanner component
-  const handleDeleteTodo = (categoryIndex: number, todoIndex: number) => {
-    const updatedCategories = [...categories];
-    updatedCategories[categoryIndex].todos.splice(todoIndex, 1);
-    setCategories(updatedCategories);
   };
 
   // Add this helper function
@@ -608,7 +812,26 @@ const DailyPlanner = () => {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isEventDetailModalOpen, setIsEventDetailModalOpen] = useState(false);
 
-  // Add the event detail modal
+  // Add this function near your other event-related functions
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', eventId);
+
+    if (error) {
+      console.error('Error deleting event:', error);
+      return;
+    }
+
+    setEvents(events.filter(event => event.id !== eventId));
+    setIsEventDetailModalOpen(false);
+    setSelectedEvent(null);
+  };
+
+  // Update the event detail modal content with a delete button
   {isEventDetailModalOpen && selectedEvent && (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg w-full max-w-sm p-4">
@@ -626,10 +849,12 @@ const DailyPlanner = () => {
             <span className="font-medium">Date: </span>
             {new Date(selectedEvent.date).toLocaleDateString()}
           </p>
-          {selectedEvent.time && (
+          {(selectedEvent.start_time || selectedEvent.end_time) && (
             <p className="text-sm">
               <span className="font-medium">Time: </span>
-              {formatTime12Hour(selectedEvent.time)}
+              {selectedEvent.start_time && formatTime12Hour(selectedEvent.start_time)}
+              {selectedEvent.start_time && selectedEvent.end_time && ' - '}
+              {selectedEvent.end_time && formatTime12Hour(selectedEvent.end_time)}
             </p>
           )}
           {selectedEvent.description && (
@@ -638,6 +863,13 @@ const DailyPlanner = () => {
               {selectedEvent.description}
             </p>
           )}
+          <Button 
+            onClick={() => handleDeleteEvent(selectedEvent.id)}
+            variant="destructive"
+            className="w-full mt-4"
+          >
+            Delete Event
+          </Button>
         </div>
       </div>
     </div>
@@ -649,6 +881,15 @@ const DailyPlanner = () => {
     { id: crypto.randomUUID(), name: 'Apartment 🏠', todos: [], color: '#FFD5DD', newTodo: '', newTodoTimes: null },
     { id: crypto.randomUUID(), name: 'Job Search 💼', todos: [], color: '#C8E8E5', newTodo: '', newTodoTimes: null },
   ];
+
+  // Add this helper function near your other time-related functions
+  const getEventsForCurrentDate = () => {
+    const dateStr = formatDateToYYYYMMDD(currentDate);
+    return events.filter(event => event.date === dateStr);
+  };
+
+  // Add this state if you don't have it already
+  const [showPastTimes, setShowPastTimes] = useState(false);
 
   return (
     // Main Container
@@ -750,9 +991,9 @@ const DailyPlanner = () => {
           {/* === PLANNER TAB === */}
           <TabsContent value="planner">
             {getEventsForDate(currentDate).length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-lg font-medium mb-2">Today's Events</h3>
-                <div className="space-y-2">
+              <div className="mb-6 max-w-md mx-auto">
+                <h3 className="text-lg font-medium mb-2 text-center">Today's Events</h3>
+                <div className="space-y-2 text-center">
                   {getEventsForDate(currentDate).map((event) => (
                     <div
                       key={event.id}
@@ -760,7 +1001,13 @@ const DailyPlanner = () => {
                       style={{ backgroundColor: buttonColor + '40' }}
                     >
                       <div className="font-medium">{event.title}</div>
-                      {event.time && <div className="text-sm">{event.time}</div>}
+                      {(event.start_time || event.end_time) && (
+                        <div className="text-sm">
+                          {event.start_time && formatTime12Hour(event.start_time)}
+                          {event.start_time && event.end_time && ' - '}
+                          {event.end_time && formatTime12Hour(event.end_time)}
+                        </div>
+                      )}
                       {event.description && <div className="text-sm mt-1">{event.description}</div>}
                     </div>
                   ))}
@@ -806,22 +1053,27 @@ const DailyPlanner = () => {
               <div className="max-w-md mx-auto relative border border-black rounded p-4 bg-white/70 mb-8">
                 <Card className="border-none">
                   <CardContent className="p-4 flex flex-col items-center justify-center text-center relative">
-                    <div className="text-2xl font-normal text-gray-900" style={{ fontFamily: 'system-ui', color: textColor }}>
+                    <div 
+                      className="text-2xl font-normal text-gray-900 cursor-pointer"
+                      onClick={toggleMainTaskCompletion}
+                      style={{ 
+                        fontFamily: 'system-ui', 
+                        color: textColor,
+                        textDecoration: scheduledTask?.completed ? 'line-through' : 'none'
+                      }}
+                    >
                       🎯 {displayedTask}
                     </div>
                     {scheduledTask && scheduledTask.startTime && scheduledTask.endTime && (
-                        <div className="text-sm text-gray-600 mt-2">
-                            {formatTime12Hour(scheduledTask.startTime)} - {formatTime12Hour(scheduledTask.endTime)}
-                        </div>
+                      <div className="text-sm text-gray-600 mt-2">
+                        {formatTime12Hour(scheduledTask.startTime)} - {formatTime12Hour(scheduledTask.endTime)}
+                      </div>
                     )}
                     <button 
-                        onClick={() => {
-                            setDisplayedTask('');
-                            setScheduledTask(null);
-                        }} 
-                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black"
+                      onClick={clearMainTask}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black"
                     >
-                        <CloseIcon size={20} />
+                      <CloseIcon size={20} />
                     </button>
                   </CardContent>
                 </Card>
@@ -1002,12 +1254,30 @@ const DailyPlanner = () => {
                             value={newEvent.date || ''}
                             onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
                           />
-                          <input
-                            className="w-full p-2 border rounded"
-                            type="time"
-                            value={newEvent.time || ''}
-                            onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
-                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Start Time
+                              </label>
+                              <input
+                                className="w-full p-2 border rounded"
+                                type="time"
+                                value={newEvent.start_time || ''}
+                                onChange={(e) => setNewEvent({ ...newEvent, start_time: e.target.value })}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                End Time
+                              </label>
+                              <input
+                                className="w-full p-2 border rounded"
+                                type="time"
+                                value={newEvent.end_time || ''}
+                                onChange={(e) => setNewEvent({ ...newEvent, end_time: e.target.value })}
+                              />
+                            </div>
+                          </div>
                           <input
                             className="w-full p-2 border rounded"
                             placeholder="Description (optional)"
@@ -1049,22 +1319,36 @@ const DailyPlanner = () => {
                                 .map((event) => (
                                   <div
                                     key={event.id}
-                                    className="text-[10px] sm:text-xs p-1 rounded cursor-pointer hover:opacity-80"
+                                    className="text-[10px] sm:text-xs p-1 rounded cursor-pointer hover:opacity-80 group relative"
                                     style={{ backgroundColor: buttonColor + '40' }}
-                                    onClick={() => {
-                                      // Show event details in a modal
-                                      setSelectedEvent(event);
-                                      setIsEventDetailModalOpen(true);
-                                    }}
                                   >
-                                    <div className="font-medium truncate">
-                                      {event.title}
-                                    </div>
-                                    {event.time && (
-                                      <div className="text-[8px] sm:text-[10px] text-gray-600">
-                                        {formatTime12Hour(event.time)}
+                                    <div 
+                                      className="flex justify-between items-center"
+                                      onClick={() => {
+                                        setSelectedEvent(event);
+                                        setIsEventDetailModalOpen(true);
+                                      }}
+                                    >
+                                      <div>
+                                        <div className="font-medium truncate">
+                                          {event.title}
+                                        </div>
+                                        {event.start_time && (
+                                          <div className="text-[8px] sm:text-[10px] text-gray-600">
+                                            {formatTime12Hour(event.start_time)}
+                                          </div>
+                                        )}
                                       </div>
-                                    )}
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDeleteEvent(event.id);
+                                        }}
+                                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded"
+                                      >
+                                        <CloseIcon className="h-3 w-3 text-red-500" />
+                                      </button>
+                                    </div>
                                   </div>
                                 ))}
                             </div>
@@ -1093,112 +1377,158 @@ const DailyPlanner = () => {
           {/* === SCHEDULE TAB === */}
           <TabsContent value="schedule">
             <div className="schedule-view max-w-md mx-auto bg-white/70 p-4">
-                {/* Early Hours (12 AM - 6 AM) */}
-                {/* <details className="cursor-pointer mb-2">
-                    <summary className="text-gray-500 p-2 hover:bg-white/50 rounded">
-                        12 AM - 6 AM
-                    </summary>
-                    <div className="relative">
-                        {[...Array(6).keys()].map((hour) => (
-                            <div key={hour} className="hour-slot flex items-start h-12 border-t border-gray-200">
-                                <span className="text-gray-400 w-12">
-                                    {hour === 0 ? '12' : hour} AM
-                                </span>
-                                <div className="flex-grow" />
-                            </div>
-                        ))}
+              {/* Toggle switch */}
+              <div className="flex items-center justify-end mb-4 gap-2">
+                <label className="text-sm text-gray-600">Show past times</label>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={showPastTimes}
+                    onChange={(e) => setShowPastTimes(e.target.checked)}
+                  />
+                  <div className={`
+                    w-11 h-6 
+                    bg-gray-200 
+                    peer-focus:outline-none 
+                    rounded-full 
+                    peer 
+                    peer-checked:after:translate-x-full 
+                    peer-checked:after:border-white 
+                    after:content-[''] 
+                    after:absolute 
+                    after:top-[2px] 
+                    after:left-[2px] 
+                    after:bg-white 
+                    after:border-gray-300 
+                    after:border 
+                    after:rounded-full 
+                    after:h-5 
+                    after:w-5 
+                    after:transition-all
+                    peer-checked:bg-pink-300
+                  `}></div>
+                </label>
+              </div>
+
+              <div className="relative">
+                {/* Hour slots */}
+                {[...Array(18)].map((_, index) => {
+                  const hour = index + 6; // Start at 6 AM
+                  const isPast = isTimeInPast(hour);
+                  
+                  if (isPast && !showPastTimes) return null;
+
+                  return (
+                    <div 
+                      key={hour} 
+                      className={`hour-slot flex items-start h-12 border-t border-gray-200 ${
+                        isPast ? 'opacity-50' : ''
+                      }`}
+                      data-hour={hour}
+                    >
+                      <span className="text-gray-500 w-12">
+                        {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
+                      </span>
+                      <div className="flex-grow relative" />
                     </div>
-                </details> */}
+                  );
+                })}
 
-                {/* Past Hours of Current Day */}
-                <details className="cursor-pointer mb-2">
-                    <summary className="text-gray-500 p-2 hover:bg-white/50 rounded">
-                        Past Hours Today
-                    </summary>
-                    <div className="relative">
-                        {[...Array(18).keys()]
-                            .map(hour => hour + 6)
-                            .filter(hour => isTimeInPast(hour))
-                            .map((hour) => (
-                                <div key={hour} className="hour-slot flex items-start h-12 border-t border-gray-200 bg-gray-100/50">
-                                    <span className="text-gray-400 w-12">
-                                        {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
-                                    </span>
-                                    <div className="flex-grow" />
-                                </div>
-                            ))}
-                    </div>
-                </details>
-
-                {/* Current and Future Hours with Tasks Overlay */}
-                <div className="relative">
-                    {/* Hour slots */}
-                    {[...Array(18).keys()]
-                        .map(hour => hour + 6)
-                        .filter(hour => !isTimeInPast(hour))
-                        .map((hour) => (
-                            <div key={hour} className="hour-slot flex items-start h-12 border-t border-gray-200">
-                                <span className="text-gray-500 w-12">
-                                    {hour % 12 || 12} {hour < 12 ? 'AM' : 'PM'}
-                                </span>
-                                <div className="flex-grow" />
-                            </div>
-                        ))}
-
-                    {/* Tasks Overlay */}
-                    <div className="absolute top-0 left-12 right-0 h-full">
-                        {/* Main Task */}
-                        {scheduledTask && scheduledTask.startTime && (
+                {/* Tasks Overlay */}
+                <div className="absolute top-0 left-12 right-0 h-full">
+                  {/* Filter and render items based on current visibility */}
+                  {[
+                    // Main task
+                    ...(scheduledTask && scheduledTask.startTime ? [{
+                      id: 'main-task',
+                      startTime: scheduledTask.startTime,
+                      endTime: scheduledTask.endTime,
+                      render: (style: React.CSSProperties) => (
+                        <div
+                          className="absolute left-0 w-full rounded px-2"
+                          style={{
+                            ...style,
+                            backgroundColor: buttonColor,
+                            opacity: scheduledTask.completed ? 0.5 : 1,
+                          }}
+                        >
+                          <span className={scheduledTask.completed ? 'line-through' : ''}>
+                            {scheduledTask.text}
+                          </span>
+                        </div>
+                      )
+                    }] : []),
+                    
+                    // Category todos
+                    ...categories.flatMap(category =>
+                      category.todos
+                        .filter(todo => todo.start_time && todo.end_time)
+                        .map(todo => ({
+                          id: todo.id,
+                          startTime: todo.start_time,
+                          endTime: todo.end_time,
+                          render: (style: React.CSSProperties) => (
                             <div
-                                className="absolute left-0 w-full rounded px-2"
-                                style={{
-                                    backgroundColor: buttonColor,
-                                    height: getTaskHeight(scheduledTask?.startTime, scheduledTask?.endTime),
-                                    top: `${((getHourFromTime(scheduledTask?.startTime) || 0) - 6) * 48}px`,
-                                    opacity: scheduledTask?.completed ? 0.5 : 1
-                                }}
+                              className="absolute left-0 w-full rounded px-2"
+                              style={{
+                                ...style,
+                                backgroundColor: category.color + '80',
+                                opacity: todo.completed ? 0.5 : 1,
+                              }}
                             >
-                                <span className={scheduledTask?.completed ? 'line-through' : ''}>
-                                    {scheduledTask?.text}
-                                </span>
+                              <span className={todo.completed ? 'line-through' : ''}>
+                                {todo.text}
+                              </span>
                             </div>
-                        )}
-
-                        {/* Category Tasks */}
-                        {categories.flatMap((category) =>
-                            category.todos
-                                .filter((todo) => todo.start_time && todo.end_time)
-                                .map((todo) => {
-                                    const startHour = getHourFromTime(todo.start_time);
-                                    if (startHour === null) return null;
-                                    
-                                    return (
-                                        <div
-                                            key={todo.id}
-                                            className="absolute left-0 w-full rounded px-2"
-                                            style={{
-                                                backgroundColor: category.color + '80',
-                                                height: getTaskHeight(
-                                                    { startTime: todo.start_time, endTime: todo.end_time }
-                                                ),
-                                                top: `${(startHour - 6) * 48}px`,
-                                                opacity: todo.completed ? 0.5 : 1
-                                            }}
-                                        >
-                                            <span className={`text-sm ${todo.completed ? 'line-through' : ''}`}>
-                                                {todo.text}
-                                            </span>
-                                            {todo.start_time && todo.end_time && (
-                                                <div className="text-xs opacity-75">
-                                                    {formatTime12Hour(todo.start_time)} - {formatTime12Hour(todo.end_time)}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })
-                        )}
-                    </div>
+                          )
+                        }))
+                    ),
+                    
+                    // Events
+                    ...getEventsForCurrentDate()
+                      .filter(event => event.start_time)
+                      .map(event => ({
+                        id: event.id,
+                        startTime: event.start_time,
+                        endTime: event.end_time,
+                        render: (style: React.CSSProperties) => (
+                          <div
+                            className="absolute left-0 w-full rounded px-2"
+                            style={{
+                              ...style,
+                              backgroundColor: buttonColor + '40',
+                            }}
+                          >
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium">{event.title}</span>
+                              {event.start_time && event.end_time && (
+                                <div className="text-xs opacity-75">
+                                  {formatTime12Hour(event.start_time)} - {formatTime12Hour(event.end_time)}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      }))
+                  ]
+                    .filter(item => {
+                      const startHour = getHourFromTime(item.startTime);
+                      return showPastTimes || (startHour !== null && !isTimeInPast(startHour));
+                    })
+                    .map(item => {
+                      const style = {
+                        height: getTaskHeight(item.startTime, item.endTime),
+                        top: getTopPosition(item.startTime),
+                      };
+                      return (
+                        <React.Fragment key={item.id}>
+                          {item.render(style)}
+                        </React.Fragment>
+                      );
+                    })}
                 </div>
+              </div>
             </div>
           </TabsContent>
   
